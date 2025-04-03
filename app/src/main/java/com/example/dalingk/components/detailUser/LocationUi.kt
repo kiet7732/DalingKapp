@@ -52,7 +52,7 @@ fun Location(viewModel: UserInputViewModel) {
     val locationState = remember { viewModel.location }
     val currentLocation = locationState.value
 
-    Log.d("LocationDebug", "Current Location: $currentLocation")
+//    Log.d("LocationDebug", "Current Location: $currentLocation")
 
     val initialIndex = cities.indexOf(currentLocation).takeIf { it >= 0 } ?: 0
     Log.d("LocationDebug", "Initial Index: $initialIndex")
