@@ -55,7 +55,7 @@ fun Location(viewModel: UserInputViewModel) {
 //    Log.d("LocationDebug", "Current Location: $currentLocation")
 
     val initialIndex = cities.indexOf(currentLocation).takeIf { it >= 0 } ?: 0
-    Log.d("LocationDebug", "Initial Index: $initialIndex")
+//    Log.d("LocationDebug", "Initial Index: $initialIndex")
 
     val listState = rememberLazyListState()
 
