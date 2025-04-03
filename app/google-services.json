@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1033214218514",
+    "project_id": "daling-app123",
+    "storage_bucket": "daling-app123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033214218514:android:f33b135edce8d5bc6323cb",
+        "android_client_info": {
+          "package_name": "com.example.dalingk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrlRxo3K_1DjEJoiYigJ8ZCMDtveoXlpg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

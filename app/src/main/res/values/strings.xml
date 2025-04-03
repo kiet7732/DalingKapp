@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">DalingK</string>
+    <string name="title_activity_start_ui">StartUI</string>
+    <string name="title_activity_get_start">GetStart</string>
+    <string name="title_activity_intro_ui">IntroUI</string>
+    <string name="title_activity_logo_start">LogoStart</string>
+    <string name="title_activity_user_intro_form">UserIntroForm</string>
+    <string name="title_activity_input_detail_u">InputDetailU</string>
+    <string name="title_activity_gender_ui">GenderUi</string>
+    <string name="title_activity_looking_for">LookingFor</string>
+    <string name="title_activity_interest_ui">InterestUI</string>
+    <string name="title_activity_up_photo">UpPhoto</string>
+    <string name="title_activity_main_lay_out">MainLayOut</string>
+    <string name="title_activity_photo_swipe_screen">PhotoSwipeScreen</string>
+    <string name="title_activity_profile_card">ProfileCard</string>
+    <string name="title_activity_profile_card_component">ProfileCardComponent</string>
+    <string name="title_activity_match_action_button_component">MatchActionButtonComponent</string>
+    <string name="title_activity_home_match">HomeMatch</string>
+    <string name="title_activity_top_bar">TopBar</string>
+    <string name="title_activity_main2">MainActivity2</string>
+    <string name="title_activity_auth_view_model">AuthViewModel</string>
+    <string name="title_activity_register">Register</string>
+    <string name="title_activity_profile_screen">ProfileScreen</string>
+    <string name="title_activity_loading">Loading</string>
+    <string name="title_activity_location_screen">LocationScreen</string>
+    <string name="title_activity_avatar_detail_screen">AvatarDetailScreen</string>
+    <string name="title_activity_bottom_sheet">BottomSheet</string>
+    <string name="title_activity_match_notif">MatchNotif</string>
+    <string name="title_activity_chat_list">ChatList</string>
+    <string name="title_activity_chat_screen">ChatScreen</string>
+    <string name="title_activity_display_photos">DisplayPhotos</string>
+    <string name="title_activity_wheel_picker">WheelPicker</string>
+    <string name="title_activity_location_ui">LocationUi</string>
+</resources>
