@@ -150,25 +150,32 @@ fun PhoneNumberInput(
 
         Button(
             onClick = {
-                if (email.isBlank() || password.isBlank()) {
+                // Trim inputs to avoid whitespace issues
+                val trimmedEmail = email.trim()
+                val trimmedPassword = password.trim()
+
+                // Validate inputs
+                if (trimmedEmail.isBlank() || trimmedPassword.isBlank()) {
                     errorMessage = "Email và mật khẩu không được để trống"
                     return@Button
                 }
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+                    errorMessage = "Email không hợp lệ (ví dụ: user@example.com)"
+                    return@Button
+                }
+                if (trimmedPassword.length < 6) {
+                    errorMessage = "Mật khẩu phải có ít nhất 6 ký tự"
+                    return@Button
+                }
 
-                // Launch coroutine to handle suspend function
                 scope.launch {
-                    viewModel.loginUser(email, password, { userId ->
-                        // Lưu User ID vào DataStore
+                    viewModel.loginUser(trimmedEmail, trimmedPassword, { userId ->
                         UserPreferences.saveUserId(context, userId)
-                        // Call suspend function within coroutine
-
                         val updatedUserId = UserPreferences.getUserId(context) ?: ""
                         Log.d("DEBUG", "Updated userId after login updatedUserId: $updatedUserId")
                         Log.d("DEBUG", "Updated userId after login userId: $userId")
 
-                        // Kiểm tra dữ liệu
                         viewModel.fetchUserData(userId)
-
                         viewModel.checkCurrentUserDataExists(
                             onResult = { route ->
                                 navController.navigate(route)
@@ -179,10 +186,15 @@ fun PhoneNumberInput(
                                 navController.navigate(Routes.TrailerScreen)
                             }
                         )
-
                         showSuccess = true
-                    }, {
-                        errorMessage = it
+                    }, { error ->
+                        // Customize the error message for better user feedback
+                        errorMessage = when {
+                            error.contains("incorrect", ignoreCase = true) -> "Email hoặc mật khẩu không đúng"
+                            error.contains("malformed", ignoreCase = true) -> "Email không hợp lệ, vui lòng kiểm tra lại"
+                            error.contains("expired", ignoreCase = true) -> "Phiên đăng nhập đã hết hạn, vui lòng thử lại"
+                            else -> "Lỗi đăng nhập: $error"
+                        }
                     })
                 }
             },

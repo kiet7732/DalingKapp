@@ -16,6 +16,7 @@ import com.google.firebase.database.ValueEventListener
 import data.chat.AppChatDatabase
 import data.chat.CachedChatListItem
 import data.chat.CachedMessage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,17 +57,27 @@ class ChatListViewModel(
         }
     }
 
-    fun loadMessages(matchId: String) {
+    private var currentPage = 0
+    private val pageSize = 50
+
+    fun loadMessages(matchId: String, loadMore: Boolean = false) {
         viewModelScope.launch {
             currentUserId?.let { ownerId ->
-                chatDao.getMessagesByMatchId(matchId, ownerId).asFlow().collect { messages ->
-                    _messages.value = messages.sortedBy { it.timestamp }
-                    Log.d("ChatListViewModel", "Loaded ${messages.size} messages for matchId: $matchId from Room")
+                if (loadMore) {
+                    currentPage++
+                } else {
+                    currentPage = 0
+                    _messages.value = emptyList() // Reset danh sách khi tải lại từ đầu
                 }
+                val offset = currentPage * pageSize
+                val newMessages = chatDao.getMessagesByMatchIdWithPagination(matchId, ownerId, pageSize, offset)
+                _messages.value = (_messages.value + newMessages).distinctBy { it.messageId }.sortedBy { it.timestamp }
+                Log.d("ChatListViewModel", "Loaded ${newMessages.size} messages for matchId: $matchId (page: $currentPage)")
             }
         }
     }
 
+    //load tin nhắn
     fun sendMessage(matchId: String, senderId: String, text: String) {
         val messageId = database.getReference("matches/$matchId/chat").push().key ?: return
         currentUserId?.let { ownerId ->
@@ -77,15 +88,41 @@ class ChatListViewModel(
                 text = text,
                 timestamp = System.currentTimeMillis(),
                 isSynced = false,
-                ownerId = ownerId // Gán ownerId
+                ownerId = ownerId
             )
 
             viewModelScope.launch {
                 chatDao.insertMessage(message)
                 updateChatListItem(matchId, text, message.timestamp)
                 if (isNetworkAvailable) {
-                    syncMessageToFirebase(message)
+                    syncMessageToFirebaseWithRetry(message)
                 }
+            }
+        }
+    }
+
+    //Thêm cơ chế thử lại nếu đồng bộ với Firebase thất bại:
+    private suspend fun syncMessageToFirebaseWithRetry(message: CachedMessage, maxRetries: Int = 3) {
+        var retryCount = 0
+        while (retryCount < maxRetries) {
+            try {
+                database.getReference("matches/${message.matchId}/chat/${message.messageId}")
+                    .setValue(
+                        mapOf(
+                            "senderId" to message.senderId,
+                            "text" to message.text,
+                            "timestamp" to message.timestamp
+                        )
+                    ).await()
+                chatDao.markMessageAsSynced(message.messageId)
+                chatDao.markChatListItemAsSynced(message.matchId)
+                return
+            } catch (e: Exception) {
+                retryCount++
+                if (retryCount == maxRetries) {
+                    Log.e("ChatListViewModel", "Failed to sync message after $maxRetries retries: ${e.message}")
+                }
+                delay(1000L * retryCount) // Delay tăng dần
             }
         }
     }
@@ -113,6 +150,48 @@ class ChatListViewModel(
                 }
             }
         }
+    }
+
+    private var messagesListener: ValueEventListener? = null
+
+    //Thêm listener cho cập nhật thời gian thực:
+    fun startMessagesListener(matchId: String) {
+        val messagesRef = database.getReference("matches/$matchId/chat")
+        messagesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                viewModelScope.launch {
+                    val newMessages = mutableListOf<CachedMessage>()
+                    snapshot.children.forEach { messageSnapshot ->
+                        val messageId = messageSnapshot.key ?: return@forEach
+                        val senderId = messageSnapshot.child("senderId").value as? String ?: return@forEach
+                        val text = messageSnapshot.child("text").value as? String ?: return@forEach
+                        val timestamp = messageSnapshot.child("timestamp").value as? Long ?: return@forEach
+
+                        val message = CachedMessage(
+                            messageId = messageId,
+                            matchId = matchId,
+                            senderId = senderId,
+                            text = text,
+                            timestamp = timestamp,
+                            isSynced = true,
+                            ownerId = currentUserId ?: ""
+                        )
+                        newMessages.add(message)
+                        chatDao.insertMessage(message)
+                    }
+                    _messages.value = (_messages.value + newMessages).distinctBy { it.messageId }.sortedBy { it.timestamp }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatListViewModel", "Messages listener cancelled: ${error.message}")
+            }
+        })
+    }
+
+    override fun onCleared() {
+        messagesListener?.let { database.getReference().removeEventListener(it) }
+        super.onCleared()
     }
 
     private suspend fun updateChatListItem(

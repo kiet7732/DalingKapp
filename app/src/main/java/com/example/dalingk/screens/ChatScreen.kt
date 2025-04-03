@@ -127,30 +127,39 @@ fun ChatScreen(
     }
 
     // Quản lý phân trang
-    var visibleMessageCount by remember { mutableStateOf(20) } // Số tin nhắn hiển thị
+    var visibleMessageCount by remember { mutableStateOf(50) } // Số tin nhắn hiển thị
     val totalMessages = messages.size
-    val pageSize = 20 // Kích thước mỗi trang
+    val pageSize = 50 // Kích thước mỗi trang
 
     // Chỉ lấy tin nhắn cần hiển thị dựa trên phân trang
     val displayedMessages = remember(messages, visibleMessageCount) {
         messages
-            .sortedBy { it.timestamp }
+            .sortedBy { it.timestamp } // Sắp xếp theo thời gian tăng dần (cũ -> mới)
             .takeLast(visibleMessageCount.coerceAtMost(totalMessages))
     }
 
     // Trạng thái cuộn của LazyColumn
     val lazyListState = rememberLazyListState()
 
+    // Tự động cuộn đến tin nhắn mới nhất khi danh sách tin nhắn thay đổi hoặc khi vào màn hình
+    LaunchedEffect(displayedMessages) {
+        if (displayedMessages.isNotEmpty()) {
+            lazyListState.scrollToItem(displayedMessages.size - 1) // Cuộn đến tin nhắn cuối cùng
+        }
+    }
+
+    LaunchedEffect(matchId) {
+        viewModel.loadMessages(matchId)
+        viewModel.startMessagesListener(matchId) // Bắt đầu lắng nghe tin nhắn mới
+    }
+
     // Tải thêm tin nhắn cũ khi cuộn gần đầu danh sách
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.firstVisibleItemIndex }
             .collect { firstVisibleIndex ->
-                if (firstVisibleIndex < 10 && visibleMessageCount < totalMessages) { // Tăng ngưỡng lên 10
-                    val oldFirstVisibleItem = lazyListState.firstVisibleItemIndex
+                if (firstVisibleIndex < 10 && visibleMessageCount < totalMessages) {
                     visibleMessageCount += pageSize
-                    delay(50) // Giảm delay để phản hồi nhanh hơn
-                    val newIndex = (oldFirstVisibleItem + pageSize).coerceAtMost(displayedMessages.size - 1)
-                    lazyListState.animateScrollToItem(newIndex)
+                    // Không cần điều chỉnh vị trí cuộn vì tin nhắn mới ở dưới cùng
                 }
             }
     }
@@ -210,7 +219,7 @@ fun ChatScreen(
                 Divider(modifier = Modifier.padding(vertical = 1.dp))
             }
         }
-        val reversedMessages = remember(displayedMessages) { displayedMessages.reversed() } //Lưu danh sách đã đảo ngược một lần và tái sử dụng:
+
         // Danh sách tin nhắn
         LazyColumn(
             modifier = Modifier
@@ -218,11 +227,11 @@ fun ChatScreen(
                 .padding(horizontal = 16.dp),
             state = lazyListState,
             contentPadding = PaddingValues(vertical = 8.dp),
-            reverseLayout = true // Tin nhắn mới nhất ở dưới cùng
+            reverseLayout = true //(mặc định) nên tin nhắn mới ở dưới cùng
         ) {
-            itemsIndexed(displayedMessages.reversed()) { index, message ->
+            itemsIndexed(displayedMessages) { index, message ->
                 // Lấy tin nhắn trước đó (nếu có)
-                val previousMessage = reversedMessages.getOrNull(reversedMessages.indexOf(message) + 1)
+                val previousMessage = displayedMessages.getOrNull(index - 1)
                 val shouldShowDate = previousMessage == null || !isSameDay(message.timestamp, previousMessage.timestamp)
                 if (shouldShowDate) {
                     Text(
@@ -238,7 +247,7 @@ fun ChatScreen(
                 ChatItem(
                     message = message,
                     currentUserId = currentUserId,
-                    context = context
+                    userData = userData
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -323,7 +332,6 @@ fun ChatScreen(
                 }
             }
         }
-
     }
 }
 
@@ -332,9 +340,8 @@ fun ChatScreen(
 fun ChatItem(
     message: CachedMessage,
     currentUserId: String,
-    context: Context
+    userData: UserData?
 ) {
-    // Nếu là tin nhắn hệ thống (senderId = "system"), hiển thị ở giữa
     if (message.senderId == "system") {
         Row(
             modifier = Modifier
@@ -357,16 +364,6 @@ fun ChatItem(
             )
         }
     } else {
-        // Tin nhắn thông thường (không phải hệ thống)
-        var userData by remember { mutableStateOf<UserData?>(null) }
-        val coroutineScope = rememberCoroutineScope()
-        LaunchedEffect(message.senderId) {
-            coroutineScope.launch {
-                userData = getUserData(message.senderId, context)
-            }
-        }
-
-        // Chỉ hiển thị khi userData đã được tải
         userData?.let { data ->
             val isSentByCurrentUser = message.senderId == currentUserId
 
@@ -376,21 +373,10 @@ fun ChatItem(
                     .padding(horizontal = 8.dp),
                 horizontalArrangement = if (isSentByCurrentUser) Arrangement.End else Arrangement.Start
             ) {
-//                if (!isSentByCurrentUser) {
-//                    Image(
-//                        painter = painterResource(id = data.avatarResId),
-//                        contentDescription = "Avatar",
-//                        modifier = Modifier
-//                            .size(40.dp)
-//                            .clip(CircleShape)
-//                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), CircleShape)
-//                    )
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                }
                 Column(
                     modifier = Modifier
-                        .wrapContentWidth() // Co giãn theo nội dung
-                        .widthIn(max = 300.dp) // Giới hạn tối đa 250.dp
+                        .wrapContentWidth()
+                        .widthIn(max = 300.dp)
                         .background(
                             color = if (isSentByCurrentUser) Color(0xFFDCF8C6) else Color(0xFF464545),
                             shape = RoundedCornerShape(12.dp)
@@ -403,7 +389,7 @@ fun ChatItem(
                         fontSize = 15.sp,
                         maxLines = 10,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.wrapContentWidth() // Đảm bảo Text co giãn theo nội dung
+                        modifier = Modifier.wrapContentWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -412,21 +398,10 @@ fun ChatItem(
                         fontSize = 12.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier
-                            .wrapContentWidth() // Co giãn theo nội dung
+                            .wrapContentWidth()
                             .align(if (isSentByCurrentUser) Alignment.Start else Alignment.End)
                     )
                 }
-//                if (isSentByCurrentUser) {
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Image(
-//                        painter = painterResource(id = data.avatarResId),
-//                        contentDescription = "Avatar",
-//                        modifier = Modifier
-//                            .size(40.dp)
-//                            .clip(CircleShape)
-//                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), CircleShape)
-//                    )
-//                }
             }
         }
     }
