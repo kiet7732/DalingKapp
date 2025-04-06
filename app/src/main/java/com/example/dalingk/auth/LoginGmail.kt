@@ -358,7 +358,6 @@ fun InLine() {
             contentDescription = "Line 1",
             modifier = Modifier
                 .requiredWidth(79.dp)
-                .border(border = BorderStroke(1.dp, Color(0xffd8d8d8)))
         )
 
         Spacer(modifier = Modifier.width(7.dp))  // Space between the line and "OR" text
@@ -378,7 +377,6 @@ fun InLine() {
             contentDescription = "Line 2",
             modifier = Modifier
                 .requiredWidth(79.dp)
-                .border(border = BorderStroke(1.dp, Color(0xffd8d8d8)))
         )
     }
     Spacer(modifier = Modifier.height(40.dp))

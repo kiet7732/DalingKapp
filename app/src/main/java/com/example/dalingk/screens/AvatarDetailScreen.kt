@@ -46,6 +46,7 @@ import coil3.size.Precision
 import coil3.transform.CircleCropTransformation
 import com.example.dalingk.R
 import com.example.dalingk.components.EditBottomSheet
+import com.example.dalingk.components.LottieAnimationCus
 import com.example.dalingk.components.detailUser.cities
 import com.example.dalingk.navigation.Routes
 import data.repository.AuthViewModel
@@ -170,6 +171,14 @@ fun AvatarDetail(navController: NavController, context: Context) {
 //                    .offset(x = 45.dp, y = -5.dp)
 //            )
 
+            LottieAnimationCus(
+                jsonFileName = R.raw.i_anim,
+                modifier = Modifier
+                    .size(72.dp)
+                    .padding(4.dp)
+                    .align(Alignment.TopCenter)
+                    .offset(x = 70.dp, y = -5.dp)
+            )
 
         }
         Spacer(modifier = Modifier.height(25.dp))

@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -67,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
+import com.example.dalingk.components.LottieAnimationCus
 
 class ChatList : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -102,7 +106,32 @@ fun ChatListUI(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading && chatList.isEmpty()) {
-//            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            Box(
+                modifier = Modifier.fillMaxSize() // Đảm bảo Box chiếm toàn bộ không gian
+            ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter) // Đặt lên trên cùng và giữa theo chiều ngang
+                        .padding(top = 100.dp) // Nhích xuống một chút từ đỉnh (có thể điều chỉnh)
+                        .wrapContentSize(), // Chỉ chiếm không gian cần thiết
+                    horizontalAlignment = Alignment.CenterHorizontally, // Canh giữa các phần tử con theo chiều ngang
+                    verticalArrangement = Arrangement.Center // Canh giữa theo chiều dọc
+                ) {
+                    LottieAnimationCus(
+                        jsonFileName = R.raw.phonechatm_anim,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f) // Giữ tỷ lệ vuông (tùy chọn)
+                    )
+                    Text(
+                        text = "Hãy match để tìm kiếm bạn chat nhé!",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 18.sp
+                        ),
+                        textAlign = TextAlign.Center // Canh giữa văn bản
+                    )
+                }
+            }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Danh sách avatar ngang
@@ -198,7 +227,7 @@ fun ChatListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth() // Lấp đầy toàn bộ chiều ngang
-            .height(95.dp)
+            .height(120.dp)
             .clickable {
                 navController.navigate("chat/${item.matchId}")
             },
@@ -210,7 +239,7 @@ fun ChatListItem(
         Row(
             modifier = Modifier
                 .fillMaxSize() // Đảm bảo nội dung không bị co lại
-                .padding(14.dp),
+                .padding(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -226,7 +255,7 @@ fun ChatListItem(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -239,6 +268,7 @@ fun ChatListItem(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     text = item.latestMessage,
                     color = Color(0xFF383838),

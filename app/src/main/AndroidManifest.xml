@@ -16,6 +16,11 @@
         android:theme="@style/Theme.DalingK"
         tools:targetApi="31">
         <activity
+            android:name=".components.DynamicLottieAnimation"
+            android:exported="false"
+            android:label="@string/title_activity_dynamic_lottie_animation"
+            android:theme="@style/Theme.DalingK" />
+        <activity
             android:name=".components.detailUser.LocationUi"
             android:exported="false"
             android:label="@string/title_activity_location_ui"

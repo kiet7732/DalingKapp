@@ -42,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dalingk.R
+import com.example.dalingk.components.LottieAnimationCus
 import com.example.dalingk.ui.theme.DalingKTheme
 
 class GetStart : ComponentActivity() {
@@ -137,9 +138,14 @@ fun LoginScreenStart(onLoginClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(16.dp)
     ) {
-        MaskGroup()
+//        MaskGroup()
 
-        Spacer(modifier = Modifier.height(20.dp))
+        LottieAnimationCus(
+            jsonFileName = R.raw.intro_a,
+            modifier = Modifier.height(397.dp)
+        )
+
+        Spacer(modifier = Modifier.height(50.dp))
 
         // Main Text
         Text(
@@ -158,6 +164,7 @@ fun LoginScreenStart(onLoginClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 24.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
+        
 
         // Button
         Button(

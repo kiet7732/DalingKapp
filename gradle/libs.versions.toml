@@ -21,6 +21,7 @@ firebaseDatabase = "21.0.0"
 roomCommon = "2.6.1"
 roomKtx = "2.6.1"
 
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
