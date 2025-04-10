@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.*
 import androidx.navigation.NavController
 import com.example.dalingk.R
+import com.example.dalingk.components.InterestsScreenUI
 import com.example.dalingk.components.TopBarU
 import com.example.dalingk.screens.AvatarDetail
 import com.example.dalingk.screens.ChatListUI
@@ -118,6 +119,7 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
         ) {
             when (selectedIndex) {
                 0 -> HomeMatch(profiles = profiles, context, viewModel)
+                1 -> InterestsScreenUI()
                 2 -> ChatListUI(navController = navController)
                 3 -> AvatarDetail(navController = navController, context)
             }

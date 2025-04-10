@@ -128,7 +128,8 @@ fun ChatListUI(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 18.sp
                         ),
-                        textAlign = TextAlign.Center // Canh giữa văn bản
+                        textAlign = TextAlign.Center, // Canh giữa văn bản
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -139,12 +140,18 @@ fun ChatListUI(
 
                 // Danh sách chat dọc
                 val listState = rememberLazyListState()
-                Box(  modifier = Modifier
-                    .weight(1f) // Chiếm phần còn lại của không gian
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)) // Bo tròn góc trên
-                    .background(Color(0xFFFFE6E9)), // Màu nền để viền trông rõ hơn (tùy chọn)
-                     ){
+                Box(
+                    modifier = Modifier
+                        .weight(1f) // Chiếm phần còn lại của không gian
+                        .fillMaxWidth()
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 40.dp,
+                                topEnd = 40.dp
+                            )
+                        ) // Bo tròn góc trên
+                        .background(Color(0xFFFFE6E9)), // Màu nền để viền trông rõ hơn (tùy chọn)
+                ) {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize(),
@@ -219,6 +226,7 @@ fun HorizontalAvatarList(
     }
 
 }
+
 @Composable
 fun ChatListItem(
     item: CachedChatListItem,

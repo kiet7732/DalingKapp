@@ -113,7 +113,7 @@ fun AvatarDetail(navController: NavController, context: Context) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(250.dp)
+                    .size(200.dp)
                     .align(Alignment.TopCenter)
                     .clip(CircleShape)
                     .clickable {
@@ -138,7 +138,7 @@ fun AvatarDetail(navController: NavController, context: Context) {
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .transformations(CircleCropTransformation())
-                            .size(220, 220)
+                            .size(180, 180)
                             .precision(Precision.INEXACT)
                             .build()
                     }
@@ -171,17 +171,17 @@ fun AvatarDetail(navController: NavController, context: Context) {
 //                    .offset(x = 45.dp, y = -5.dp)
 //            )
 
-            LottieAnimationCus(
-                jsonFileName = R.raw.i_anim,
-                modifier = Modifier
-                    .size(72.dp)
-                    .padding(4.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(x = 70.dp, y = -5.dp)
-            )
+//            LottieAnimationCus(
+//                jsonFileName = R.raw.i_anim,
+//                modifier = Modifier
+//                    .size(72.dp)
+//                    .padding(4.dp)
+//                    .align(Alignment.TopCenter)
+//                    .offset(x = 70.dp, y = -5.dp)
+//            )
 
         }
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(55.dp))
 
         TextCusADetail("Ngôn ngữ", "Tiếng Việt", {
             showBottomSheet = true

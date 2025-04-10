@@ -67,10 +67,10 @@ fun LottieAnimationCus(
 @Composable
 fun GreetingPreview20() {
     DalingKTheme {
-        LottieAnimationCus(
-            jsonFileName = R.raw.heart_amin,
-//            modifier = Modifier.fillMaxSize(),
-        )
+//        LottieAnimationCus(
+//            jsonFileName = R.raw.heart_amin,
+////            modifier = Modifier.fillMaxSize(),
+//        )
 
     }
 }
