@@ -164,8 +164,9 @@ fun ProfileScreenU(navController: NavController, context: Context) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
+            .padding(start = 16.dp, end = 16.dp)
+            .verticalScroll(scrollState)
+            .padding(WindowInsets.systemBars.asPaddingValues()),
         horizontalAlignment = Alignment.Start
     ) {
         Row(
@@ -180,13 +181,15 @@ fun ProfileScreenU(navController: NavController, context: Context) {
             }) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Back",
+                    tint  = Color.Black
                 )
             }
             Text(
                 text = "Hồ Sơ",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -721,7 +724,8 @@ fun TextCus(
             text = label,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
         )
         // Biểu tượng chỉnh sửa

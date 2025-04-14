@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             DalingKTheme {
                 Surface(
@@ -142,9 +143,8 @@ fun AppNavigation() {
     if (!isChecking) {
         Column(
             modifier = Modifier
-                .padding(top = 20.dp)
                 .fillMaxSize()
-                .background(Color(0xFFFFF5F5))
+                .background(Color(0xFFFFE9E9))
         ) {
             NavHost(navController = navController, startDestination = startDestination) {
                 composable(Routes.TrailerScreen) {
@@ -200,7 +200,7 @@ fun AppNavigation() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFF5F5)),
+                .background(Color(0xFFFFE9E9)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

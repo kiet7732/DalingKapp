@@ -186,7 +186,9 @@ fun AvatarDetail(navController: NavController, context: Context) {
         TextCusADetail("Ngôn ngữ", "Tiếng Việt", {
             showBottomSheet = true
         })
-        TextCusADetail("Chế độ", "Sáng", {})
+        TextCusADetail("Chế độ", "Sáng", {
+            showBottomSheet = true
+        })
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -257,7 +259,8 @@ fun TextCusADetail(
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
-            )
+            ),
+            color = Color.Black
         )
 
         Spacer(modifier = Modifier.weight(1f)) // Tạo khoảng cách linh hoạt giữa "Ngôn ngữ" và "Tiếng Việt"

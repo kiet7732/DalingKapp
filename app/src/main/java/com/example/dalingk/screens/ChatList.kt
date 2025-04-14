@@ -126,10 +126,11 @@ fun ChatListUI(
                     Text(
                         text = "Hãy match để tìm kiếm bạn chat nhé!",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 18.sp
+                            fontSize = 20.sp
                         ),
                         textAlign = TextAlign.Center, // Canh giữa văn bản
                         fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
                 }
             }

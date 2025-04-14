@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Person
@@ -235,7 +236,6 @@ fun PhoneNumberInput(
         BtnLogin("facebook")
     }
 }
-
 @Composable
 fun CustomOutlinedTextField(
     value: String,
@@ -247,10 +247,9 @@ fun CustomOutlinedTextField(
     val keyboardController = LocalSoftwareKeyboardController.current
     var isShowPassword by remember { mutableStateOf(false) }
 
-    // Sử dụng Modifier.pointerInput để lắng nghe sự kiện nhấn bên ngoài
     val modifier = Modifier.pointerInput(Unit) {
         detectTapGestures {
-            keyboardController?.hide() // Ẩn bàn phím khi nhấn ra ngoài
+            keyboardController?.hide()
         }
     }
 
@@ -264,8 +263,7 @@ fun CustomOutlinedTextField(
         ),
         label = { Text(label) },
         placeholder = { Text(text = placeholder) },
-        leadingIcon =
-        {
+        leadingIcon = {
             Icon(
                 imageVector = if (isPassword) Icons.Filled.Key else Icons.Filled.Person,
                 contentDescription = null
@@ -279,8 +277,8 @@ fun CustomOutlinedTextField(
             onDone = { keyboardController?.hide() }
         ),
         modifier = modifier
-            .width(355.dp)
-            .height(60.dp),
+            .width(395.dp)
+            .height(70.dp),
         shape = RoundedCornerShape(8.dp),
         trailingIcon = if (isPassword) {
             {
@@ -292,10 +290,10 @@ fun CustomOutlinedTextField(
                 }
             }
         } else null,
-        visualTransformation = if (isPassword && !isShowPassword) PasswordVisualTransformation() else VisualTransformation.None
+        visualTransformation = if (isPassword && !isShowPassword) PasswordVisualTransformation() else VisualTransformation.None,
+
     )
 }
-
 
 @Composable
 fun BtnLogin(text: String) {

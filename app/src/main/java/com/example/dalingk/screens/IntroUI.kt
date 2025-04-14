@@ -14,11 +14,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.dalingk.auth.PhoneNumberInput
@@ -53,6 +58,9 @@ import data.repository.AuthViewModel
 class IntroUI : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
+
         enableEdgeToEdge()
         setContent {
             DalingKTheme {
@@ -61,7 +69,7 @@ class IntroUI : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 )
                 {
-                    IntroUi()
+//                    LoginScreen()
                 }
             }
         }
@@ -69,7 +77,7 @@ class IntroUI : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen(navController: NavController, currentScreen: String? = null,context: Context) {
+fun LoginScreen(navController: NavController, currentScreen: String? = null, context: Context) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,6 +85,7 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null,cont
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFFE9E9))
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         val authViewModel = viewModel<AuthViewModel>()
         // Logo
@@ -103,7 +112,9 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null,cont
             RegisterScreen(
                 viewModel = authViewModel,
                 navController = navController,
-                onBack = { screenState = Routes.InputLogin }, // Quay lại màn hình nhập số điện thoại
+                onBack = {
+                    screenState = Routes.InputLogin
+                }, // Quay lại màn hình nhập số điện thoại
                 onSuccess = { navController.navigate(Routes.InputDetail) }, // Thêm callback mới
                 context
             )
@@ -164,7 +175,6 @@ fun CustomLogo(
             contentDescription = "Cupid Arrow Logo",
             modifier = Modifier
                 .size(logoSize)
-                .padding(top = 4.dp)
         )
         // Text
         Text(
@@ -172,7 +182,8 @@ fun CustomLogo(
             style = TextStyle(fontSize = textSize, fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .align(Alignment.Bottom)
-                .offset(x = textOffset)
+                .offset(x = textOffset),
+            color = Color.Black
         )
     }
 }
@@ -180,7 +191,7 @@ fun CustomLogo(
 
 @Preview(showBackground = true)
 @Composable
-fun IntroUi() {
+fun IntroUio() {
     DalingKTheme {
 //        LoginScreen()
 //        CustomLogo()
