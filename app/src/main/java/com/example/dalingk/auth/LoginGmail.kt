@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Key
@@ -103,13 +104,16 @@ fun PhoneNumberInput(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>("") }
     var showSuccess by remember { mutableStateOf(false) }
     // Collect loading state
-//    val isLoading by viewModel.isLoading.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     // Use LaunchedEffect or coroutine scope to handle suspend functions
     val scope = rememberCoroutineScope()
+
+    // Get the keyboard controller in the composable scope
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -151,6 +155,9 @@ fun PhoneNumberInput(
 
         Button(
             onClick = {
+                // Hide the keyboard
+                keyboardController?.hide()
+
                 // Trim inputs to avoid whitespace issues
                 val trimmedEmail = email.trim()
                 val trimmedPassword = password.trim()
@@ -203,15 +210,32 @@ fun PhoneNumberInput(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xfffe506b)),
             contentPadding = PaddingValues(horizontal = 30.dp, vertical = 17.dp),
         ) {
-            Text(
-                text = "Continue",
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                style = TextStyle(fontSize = 18.sp),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            if (isLoading){
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp), // Match the approximate height of the text
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(16.dp), // Smaller size
+                        color = Color.White,
+                        strokeWidth = 2.dp // Thinner ring
+                    )
+                }
+            }else{
+                Text(
+                    text = "Continue",
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(fontSize = 18.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
@@ -236,6 +260,7 @@ fun PhoneNumberInput(
         BtnLogin("facebook")
     }
 }
+
 @Composable
 fun CustomOutlinedTextField(
     value: String,
