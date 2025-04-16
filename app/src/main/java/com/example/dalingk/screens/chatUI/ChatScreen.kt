@@ -1,4 +1,4 @@
-package com.example.dalingk.screens
+package com.example.dalingk.screens.chatUI
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,12 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Divider
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,7 +45,6 @@ import com.example.dalingk.screens.ui.theme.DalingKTheme
 import data.chat.viewmodel.ChatListViewModel
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
@@ -72,8 +68,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
@@ -81,7 +75,6 @@ import com.example.dalingk.navigation.Routes
 import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
-import kotlinx.coroutines.delay
 
 class ChatScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +94,7 @@ class ChatScreen : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun ChatScreen(
     navController: NavController,
@@ -113,7 +107,7 @@ fun ChatScreen(
 
     // Trạng thái danh sách tin nhắn
     LaunchedEffect(matchId) {
-        viewModel.loadMessages(matchId) // Tải tin nhắn ban đầu
+        viewModel.loadMessages(matchId)
     }
     val messages by viewModel.messages.collectAsState()
 
@@ -127,39 +121,41 @@ fun ChatScreen(
     }
 
     // Quản lý phân trang
-    var visibleMessageCount by remember { mutableStateOf(50) } // Số tin nhắn hiển thị
+    var visibleMessageCount by remember { mutableStateOf(50) }
     val totalMessages = messages.size
-    val pageSize = 50 // Kích thước mỗi trang
+    val pageSize = 50
+    var isLoading by remember { mutableStateOf(false) }
 
-    // Chỉ lấy tin nhắn cần hiển thị dựa trên phân trang
+    // Chỉ lấy tin nhắn cần hiển thị
     val displayedMessages = remember(messages, visibleMessageCount) {
         messages
-            .sortedBy { it.timestamp } // Sắp xếp theo thời gian tăng dần (cũ -> mới)
+            .sortedBy { it.timestamp }
             .takeLast(visibleMessageCount.coerceAtMost(totalMessages))
     }
 
-    // Trạng thái cuộn của LazyColumn
+    // Trạng thái cuộn
     val lazyListState = rememberLazyListState()
 
-    // Tự động cuộn đến tin nhắn mới nhất khi danh sách tin nhắn thay đổi hoặc khi vào màn hình
-    LaunchedEffect(displayedMessages) {
+    // Tự động cuộn đến tin nhắn mới nhất
+    LaunchedEffect(matchId, displayedMessages) {
         if (displayedMessages.isNotEmpty()) {
-            lazyListState.scrollToItem(displayedMessages.size - 1) // Cuộn đến tin nhắn cuối cùng
+            lazyListState.animateScrollToItem(displayedMessages.size - 1)
         }
     }
 
     LaunchedEffect(matchId) {
         viewModel.loadMessages(matchId)
-        viewModel.startMessagesListener(matchId) // Bắt đầu lắng nghe tin nhắn mới
+        viewModel.startMessagesListener(matchId)
     }
 
-    // Tải thêm tin nhắn cũ khi cuộn gần đầu danh sách
+    // Tải thêm tin nhắn khi cuộn gần đầu
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.firstVisibleItemIndex }
             .collect { firstVisibleIndex ->
-                if (firstVisibleIndex < 10 && visibleMessageCount < totalMessages) {
+                if (firstVisibleIndex < 10 && visibleMessageCount < totalMessages && !isLoading) {
+                    isLoading = true
                     visibleMessageCount += pageSize
-                    // Không cần điều chỉnh vị trí cuộn vì tin nhắn mới ở dưới cùng
+                    isLoading = false
                 }
             }
     }
@@ -168,6 +164,7 @@ fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         // Header
         userData?.let { data ->
@@ -183,7 +180,10 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
-                        navController.currentBackStackEntry?.savedStateHandle?.set(Routes.DetailU, 2)
+                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                            Routes.DetailU,
+                            2
+                        )
                         navController.navigate(Routes.MainMatch)
                     }) {
                         Icon(
@@ -204,7 +204,7 @@ fun ChatScreen(
                         },
                         contentDescription = "Avatar",
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(60.dp)
                             .clip(CircleShape)
                             .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                     )
@@ -221,41 +221,63 @@ fun ChatScreen(
         }
 
         // Danh sách tin nhắn
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            state = lazyListState,
-            contentPadding = PaddingValues(vertical = 8.dp),
-            reverseLayout = true //(mặc định) nên tin nhắn mới ở dưới cùng
-        ) {
-            itemsIndexed(displayedMessages) { index, message ->
-                // Lấy tin nhắn trước đó (nếu có)
-                val previousMessage = displayedMessages.getOrNull(index - 1)
-                val shouldShowDate = previousMessage == null || !isSameDay(message.timestamp, previousMessage.timestamp)
-                if (shouldShowDate) {
-                    Text(
-                        text = formatDate(message.timestamp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray.copy(alpha = 0.7f),
-                        fontSize = 12.sp
-                    )
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
+                state = lazyListState,
+                contentPadding = PaddingValues(vertical = 8.dp),
+                reverseLayout = true
+            ) {
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
-                ChatItem(
-                    message = message,
-                    currentUserId = currentUserId,
-                    userData = userData
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                itemsIndexed(displayedMessages) { index, message ->
+                    val previousMessage = displayedMessages.getOrNull(index - 1)
+                    val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
+                    val shouldShowDate = previousMessage == null || !isSameDay(
+                        message.timestamp,
+                        previousMessage.timestamp
+                    )
+                    if (shouldShowDate) {
+                        Text(
+                            text = formatFriendlyDate(message.timestamp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    ChatItem(
+                        message = message,
+                        currentUserId = currentUserId,
+                        userData = userData,
+                        showAvatar = !isSameSenderAsPrevious && message.senderId != currentUserId
+                    )
+                    Spacer(modifier = Modifier.height(if (isSameSenderAsPrevious) 2.dp else 8.dp))
+                }
             }
         }
 
+        // Hộp nhập tin nhắn
         var messageText by remember { mutableStateOf("") }
-        val keyboardController = LocalSoftwareKeyboardController.current // Quản lý bàn phím
-        val focusManager = LocalFocusManager.current // Quản lý focus
+        val keyboardController = LocalSoftwareKeyboardController.current
+        val focusManager = LocalFocusManager.current
 
         Box(
             modifier = Modifier
@@ -266,7 +288,7 @@ fun ChatScreen(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    focusManager.clearFocus() // Ẩn bàn phím khi bấm ra ngoài
+                    focusManager.clearFocus()
                     keyboardController?.hide()
                 }
         ) {
@@ -276,12 +298,11 @@ fun ChatScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Hộp nhập tin nhắn
                 OutlinedTextField(
                     value = messageText,
                     onValueChange = { messageText = it },
                     modifier = Modifier
-                        .weight(1f) // Để TextField mở rộng tối đa
+                        .weight(1f)
                         .padding(4.dp),
                     placeholder = {
                         Text("Nhập tin nhắn...", color = Color.Gray.copy(alpha = 0.5f))
@@ -298,27 +319,24 @@ fun ChatScreen(
                             if (messageText.isNotBlank()) {
                                 viewModel.sendMessage(matchId, currentUserId, messageText)
                                 messageText = ""
-                                focusManager.clearFocus() // Bỏ focus khỏi TextField
+                                focusManager.clearFocus()
                             }
                         }
                     ),
-                    shape = RoundedCornerShape(20.dp), // Bo góc mềm mại
+                    shape = RoundedCornerShape(20.dp),
                     singleLine = true
                 )
-
                 Spacer(modifier = Modifier.width(8.dp))
-
-                // Nút gửi tin nhắn
                 FloatingActionButton(
                     onClick = {
                         if (messageText.isNotBlank()) {
                             viewModel.sendMessage(matchId, currentUserId, messageText)
                             messageText = ""
-                            focusManager.clearFocus() // Bỏ focus khỏi TextField
+                            focusManager.clearFocus()
                         }
                     },
                     modifier = Modifier
-                        .size(55.dp) // Nhỏ gọn hơn
+                        .size(55.dp)
                         .padding(4.dp),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White,
@@ -335,13 +353,15 @@ fun ChatScreen(
     }
 }
 
-
 @Composable
 fun ChatItem(
     message: CachedMessage,
     currentUserId: String,
-    userData: UserData?
+    userData: UserData?,
+    showAvatar: Boolean
 ) {
+    var showContextMenu by remember { mutableStateOf(false) }
+
     if (message.senderId == "system") {
         Row(
             modifier = Modifier
@@ -366,26 +386,70 @@ fun ChatItem(
     } else {
         userData?.let { data ->
             val isSentByCurrentUser = message.senderId == currentUserId
+            val shape = if (isSentByCurrentUser) {
+                RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 12.dp,
+                    bottomEnd = 4.dp
+                )
+            } else {
+                RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 12.dp,
+                    bottomStart = 4.dp,
+                    bottomEnd = 12.dp
+                )
+            }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = if (isSentByCurrentUser) Arrangement.End else Arrangement.Start
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clickable(
+                        onClick = { showContextMenu = true },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ),
+                horizontalArrangement = if (isSentByCurrentUser) Arrangement.End else Arrangement.Start,
+                verticalAlignment = Alignment.Bottom
             ) {
+                if (!isSentByCurrentUser && showAvatar) {
+                    Image(
+                        painter = if (data.avatarUrl?.isNotEmpty() == true) {
+                            rememberAsyncImagePainter(
+                                model = data.avatarUrl,
+                                placeholder = painterResource(R.drawable.ic_error),
+                                error = painterResource(R.drawable.ic_error)
+                            )
+                        } else {
+                            painterResource(R.drawable.ic_error)
+                        },
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else if (!isSentByCurrentUser) {
+                    Spacer(modifier = Modifier.width(40.dp))
+                }
                 Column(
                     modifier = Modifier
                         .wrapContentWidth()
                         .widthIn(max = 300.dp)
                         .background(
-                            color = if (isSentByCurrentUser) Color(0xFFDCF8C6) else Color(0xFF464545),
-                            shape = RoundedCornerShape(12.dp)
+                            color = if (isSentByCurrentUser) MaterialTheme.colorScheme.primary.copy(
+                                alpha = 0.9f
+                            ) else Color(0xFFF1F1F1),
+                            shape = shape
                         )
-                        .padding(12.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = message.text,
-                        color = if (isSentByCurrentUser) Color.Black else Color.White,
+                        color = if (isSentByCurrentUser) Color.White else Color.Black,
                         fontSize = 15.sp,
                         maxLines = 10,
                         overflow = TextOverflow.Ellipsis,
@@ -394,18 +458,24 @@ fun ChatItem(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = formatMessageTime(message.timestamp),
-                        color = if (isSentByCurrentUser) Color.DarkGray else Color(0xFFB3B9C9),
-                        fontSize = 12.sp,
+                        color = if (isSentByCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray.copy(
+                            alpha = 0.7f
+                        ),
+                        fontSize = 11.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier
-                            .wrapContentWidth()
-                            .align(if (isSentByCurrentUser) Alignment.Start else Alignment.End)
+                            .fillMaxWidth()
+                            .align(Alignment.End)
                     )
+                }
+                if (isSentByCurrentUser) {
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         }
     }
 }
+
 
 // Hàm hỗ trợ
 suspend fun getOtherUserId(matchId: String, currentUserId: String, context: Context): String? {
@@ -416,14 +486,25 @@ suspend fun getOtherUserId(matchId: String, currentUserId: String, context: Cont
     return if (user1Id == currentUserId) user2Id else user1Id
 }
 
-fun formatDate(timestamp: Long): String {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return dateFormat.format(Date(timestamp))
+fun formatFriendlyDate(timestamp: Long): String {
+    val calendar = Calendar.getInstance()
+    val today = calendar.timeInMillis
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    val startOfToday = calendar.timeInMillis
+    val startOfYesterday = startOfToday - 24 * 60 * 60 * 1000
+
+    return when {
+        timestamp >= startOfToday -> "Hôm nay"
+        timestamp >= startOfYesterday -> "Hôm qua"
+        else -> SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(timestamp))
+    }
 }
 
 fun formatMessageTime(timestamp: Long): String {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return timeFormat.format(Date(timestamp))
+    return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
 fun isSameDay(timestamp1: Long, timestamp2: Long): Boolean {

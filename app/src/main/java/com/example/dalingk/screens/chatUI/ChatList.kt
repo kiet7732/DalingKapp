@@ -1,7 +1,6 @@
-package com.example.dalingk.screens
+package com.example.dalingk.screens.chatUI
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -34,10 +32,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Divider
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -59,14 +55,10 @@ import data.chat.viewmodel.ChatListViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.runtime.collectAsState
-import kotlinx.coroutines.flow.StateFlow
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
@@ -135,30 +127,27 @@ fun ChatListUI(
                 }
             }
         } else {
+            val listState = rememberLazyListState()
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Danh sách avatar ngang
+                // Horizontal avatar list
                 HorizontalAvatarList(chatList = chatList, navController = navController)
 
-                // Danh sách chat dọc
-                val listState = rememberLazyListState()
+                // Filler area with rounded background and chat list
                 Box(
                     modifier = Modifier
-                        .weight(1f) // Chiếm phần còn lại của không gian
+                        .weight(1f)
                         .fillMaxWidth()
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = 40.dp,
-                                topEnd = 40.dp
-                            )
-                        ) // Bo tròn góc trên
-                        .background(Color(0xFFFFE6E9)), // Màu nền để viền trông rõ hơn (tùy chọn)
+                        .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                        .background(Color(0xFFFFE6E9))
                 ) {
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        state = listState
+                            .fillMaxSize()
+                            .padding(vertical = 8.dp),
+                        state = listState,
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(chatList, key = { it.matchId }) { item ->
                             ChatListItem(item = item, navController = navController)
@@ -166,9 +155,10 @@ fun ChatListUI(
                     }
                 }
 
+                // Auto-scroll when new chat appears
                 LaunchedEffect(chatList.size) {
                     if (chatList.isNotEmpty()) {
-                        listState.animateScrollToItem(chatList.size - 1)
+                        listState.animateScrollToItem(0)
                     }
                 }
             }
@@ -184,15 +174,15 @@ fun HorizontalAvatarList(
     LazyRow(
         modifier = Modifier
             .padding(top = 10.dp)
-            .height(100.dp)
+            .height(160.dp) // Tăng chiều cao để vừa hình chữ nhật
             .fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
         items(chatList, key = { it.matchId }) { item ->
             Column(
                 modifier = Modifier
-                    .width(100.dp)
-                    .padding(horizontal = 4.dp) // Thêm padding ngang cho khoảng cách giữa các item
+                    .width(120.dp)
+                    .padding(horizontal = 4.dp)
                     .clickable {
 //                        navController.navigate("chat/${item.matchId}")
                     },
@@ -211,22 +201,26 @@ fun HorizontalAvatarList(
                     contentDescription = item.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
+                        .width(90.dp)
+                        .height(120.dp) // Hình chữ nhật đứng
+                        .clip(RoundedCornerShape(8.dp)) // Bo góc nhẹ (tuỳ chọn)
                 )
-//                Spacer(modifier = Modifier.height(4.dp))
-//                Text(
-//                    text = item.name,
-//                    fontSize = 12.sp,
-//                    maxLines = 1,
-//                    overflow = TextOverflow.Ellipsis,
-//                    textAlign = TextAlign.Center
-//                )
+                // Bật hiển thị tên nếu muốn
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = item.name,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black
+                )
             }
         }
     }
-
 }
+
 
 @Composable
 fun ChatListItem(
@@ -236,7 +230,7 @@ fun ChatListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth() // Lấp đầy toàn bộ chiều ngang
-            .height(120.dp)
+            .height(110.dp)
             .clickable {
                 navController.navigate("chat/${item.matchId}")
             },
@@ -277,7 +271,7 @@ fun ChatListItem(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+//                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = item.latestMessage,
                     color = Color(0xFF383838),

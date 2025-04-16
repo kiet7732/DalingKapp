@@ -19,10 +19,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -51,8 +49,8 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.example.dalingk.auth.RegisterScreen
 import com.example.dalingk.components.detailUser.ArrowScreen
 import com.example.dalingk.screens.AvatarDetail
-import com.example.dalingk.screens.ChatListUI
-import com.example.dalingk.screens.ChatScreen
+import com.example.dalingk.screens.chatUI.ChatListUI
+import com.example.dalingk.screens.chatUI.ChatScreen
 import com.example.dalingk.screens.LoginScreen
 import com.example.dalingk.components.detailUser.ProfileScreenU
 import data.model.CloudinaryHelper

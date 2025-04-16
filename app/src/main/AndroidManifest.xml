@@ -41,12 +41,12 @@
             android:label="@string/title_activity_display_photos"
             android:theme="@style/Theme.DalingK" />
         <activity
-            android:name=".screens.ChatScreen"
+            android:name=".screens.chatUI.ChatScreen"
             android:exported="false"
             android:label="@string/title_activity_chat_screen"
             android:theme="@style/Theme.DalingK" />
         <activity
-            android:name=".screens.ChatList"
+            android:name=".screens.chatUI.ChatList"
             android:exported="false"
             android:label="@string/title_activity_chat_list"
             android:theme="@style/Theme.DalingK" />

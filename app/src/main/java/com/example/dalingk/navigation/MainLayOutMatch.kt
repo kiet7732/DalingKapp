@@ -38,7 +38,7 @@ import com.example.dalingk.R
 import com.example.dalingk.components.InterestsScreenUI
 import com.example.dalingk.components.TopBarU
 import com.example.dalingk.screens.AvatarDetail
-import com.example.dalingk.screens.ChatListUI
+import com.example.dalingk.screens.chatUI.ChatListUI
 import com.example.dalingk.screens.HomeMatch
 import data.repository.AuthViewModel
 import kotlinx.coroutines.Dispatchers
