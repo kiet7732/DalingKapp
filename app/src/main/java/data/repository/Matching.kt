@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.random.Random
 
 
 object Matching {
@@ -39,16 +40,18 @@ object Matching {
             try {
                 val viewedIds = hashSetOf(currentUserId) // HashSet giúp tra cứu nhanh hơn
 
-                // Lấy giới tính của người dùng hiện tại
+                // Lấy thông tin người dùng hiện tại
                 val userSnapshot = database.getReference("users/$currentUserId").get().await()
-                val currentUserGender =
-                    userSnapshot.child("gender").getValue(String::class.java) ?: ""
+                val currentUserGender = userSnapshot.child("gender").getValue(String::class.java) ?: ""
+                val currentUserInterests = userSnapshot.child("interests")
+                    .getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+                val currentUserLookingFor = userSnapshot.child("lookingFor").getValue(String::class.java) ?: ""
 
-                // Xác định giới tính mong muốn
+                // Xác định giới tính mong muốn (khác với giới tính người dùng hiện tại)
                 val preferredGender = when (currentUserGender.lowercase()) {
                     "male" -> "female"
                     "female" -> "male"
-                    else -> "" // Nếu không có giới tính rõ ràng, không lọc
+                    else -> "" // Nếu không có giới tính rõ ràng, không lọc theo giới tính
                 }
 
                 // Lấy danh sách user đã like & dislike song song
@@ -68,45 +71,63 @@ object Matching {
                 // Lấy danh sách tất cả users từ Firebase (tối đa 50 user)
                 val snapshot = database.getReference("users").limitToFirst(50).get().await()
 
-                val newProfiles = snapshot.children.mapNotNull { childSnapshot ->
+                // Tạo danh sách người dùng với điểm tương đồng
+                val profilesWithScore = snapshot.children.mapNotNull { childSnapshot ->
                     val userId = childSnapshot.key ?: return@mapNotNull null
 
                     // Nếu user đã like/dislike hoặc là chính mình -> bỏ qua
                     if (userId in viewedIds) return@mapNotNull null
 
                     val gender = childSnapshot.child("gender").getValue(String::class.java) ?: ""
-
                     // Lọc theo giới tính ngược
                     if (preferredGender.isNotEmpty() && gender.lowercase() != preferredGender) {
                         return@mapNotNull null
                     }
 
-                    AuthViewModel.UserData(
+                    val interests = childSnapshot.child("interests")
+                        .getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+                    val lookingFor = childSnapshot.child("lookingFor").getValue(String::class.java) ?: ""
+
+                    // Tính điểm tương đồng
+                    val commonInterests = currentUserInterests.intersect(interests.toSet()).size
+                    val lookingForMatch = if (currentUserLookingFor == lookingFor && lookingFor.isNotEmpty()) 1 else 0
+                    val compatibilityScore = commonInterests + lookingForMatch
+
+                    val userData = AuthViewModel.UserData(
                         userId,
                         childSnapshot.child("fullName").getValue(String::class.java) ?: "",
                         gender,
-                        childSnapshot.child("interests")
-                            .getValue(object : GenericTypeIndicator<List<String>>() {})
-                            ?: emptyList(),
-                        childSnapshot.child("lookingFor").getValue(String::class.java) ?: "",
+                        interests,
+                        lookingFor,
                         childSnapshot.child("location").getValue(String::class.java) ?: "",
                         childSnapshot.child("birthday").getValue(String::class.java) ?: "",
                         childSnapshot.child("imageUrls")
-                            .getValue(object : GenericTypeIndicator<List<String>>() {})
-                            ?: emptyList()
+                            .getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
                     )
+
+                    Pair(userData, compatibilityScore)
                 }
 
-                val displayedUserIds = newProfiles.map { it.userId }
+                // Phân loại và xáo trộn
+                val (compatibleProfiles, nonCompatibleProfiles) = profilesWithScore.partition { it.second > 0 }
+
+                // Xáo trộn danh sách tương đồng và không tương đồng
+                val shuffledCompatible = compatibleProfiles.shuffled(Random(System.currentTimeMillis()))
+                val shuffledNonCompatible = nonCompatibleProfiles.shuffled(Random(System.currentTimeMillis() + 1))
+
+                // Gộp danh sách: tương đồng ở đầu, không tương đồng ở cuối
+                val finalProfiles = (shuffledCompatible + shuffledNonCompatible).map { it.first }
+
+                val displayedUserIds = finalProfiles.map { it.userId }
                 Log.d("DisplayedUsers", "Danh sách user hiển thị: $displayedUserIds")
 
-                //  Nếu danh sách rỗng, không cập nhật `cachedProfiles`
-                if (newProfiles.isEmpty()) {
+                // Nếu danh sách rỗng, không cập nhật `cachedProfiles`
+                if (finalProfiles.isEmpty()) {
                     Log.e("FirebaseError", "Không còn profile nào đủ điều kiện để hiển thị!")
                     return@withContext // Dừng tại đây, không cập nhật danh sách rỗng
                 }
 
-                cachedProfiles.value = newProfiles
+                cachedProfiles.value = finalProfiles
 
             } catch (e: Exception) {
                 Log.e("FirebaseError", "Lỗi khi tải profiles: ${e.message}", e)

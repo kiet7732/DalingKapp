@@ -10,4 +10,5 @@ object Routes {
     var DetailU = "DetailU";
     var ChatList = "ChatList";
     var ChatScreen = "ChatScreen";
+    val ForgotPassword = "forgot_password"
 }
