@@ -11,9 +11,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
@@ -103,9 +106,6 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
         topBar = { TopBarU() },
         bottomBar = {
             NavMLayout(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
                 selectedIndex = selectedIndex,
                 onActionClicked = { index -> selectedIndex = index }
             )
@@ -127,17 +127,20 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
     }
 }
 
-
-
 @Composable
 fun NavMLayout(
     modifier: Modifier = Modifier,
     selectedIndex: Int,
     onActionClicked: (Int) -> Unit
 ) {
+    val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     Row(
         modifier = modifier
-            .background(Color.White),
+            .background(Color.White)
+            .padding(bottom = bottomPadding)
+            .fillMaxWidth()
+            .then(Modifier),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -150,9 +153,10 @@ fun NavMLayout(
 
         icons.forEachIndexed { index, icon ->
             IconButton(
-                onClick = { onActionClicked(index) }, // Cập nhật selectedIndex khi bấm
-                modifier = Modifier.weight(1f)
-                    .padding(bottom = 15.dp)
+                onClick = { onActionClicked(index) },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 8.dp) // Nhẹ hơn 15dp nếu bạn dùng padding toàn hàng
             ) {
                 Box(
                     modifier = Modifier
@@ -163,19 +167,20 @@ fun NavMLayout(
                         painter = painterResource(id = icon),
                         contentDescription = null,
                         colorFilter = if (index == selectedIndex) {
-                            ColorFilter.tint(Color(0xffff5069)) // Màu đen khi được chọn
+                            ColorFilter.tint(Color(0xffff5069))
                         } else {
-                            ColorFilter.tint(Color(0xffadafbb)) // Màu xám khi chưa chọn
+                            ColorFilter.tint(Color(0xffadafbb))
                         },
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .requiredSize(30.dp)
+                            .requiredSize(31.dp)
                     )
                 }
             }
         }
     }
 }
+
 
 
 @Preview(showBackground = true)

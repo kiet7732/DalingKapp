@@ -97,7 +97,9 @@ fun TopBarU(modifier : Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
-            .padding(WindowInsets.systemBars.asPaddingValues()),
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .padding(bottom = 0.dp)
+        ,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

@@ -124,7 +124,7 @@ fun SwipeScreen(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .padding(5.dp)
+
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -204,11 +204,11 @@ fun SwipeScreen(
             )
         }
 
-        ActionButtonsGroup(
-            onDislikeClick = { performSwipe(isLike = false) },
-            onLikeClick = { performSwipe(isLike = true) },
-            onSuperLikeClick = { }
-        )
+//        ActionButtonsGroup(
+//            onDislikeClick = { performSwipe(isLike = false) },
+//            onLikeClick = { performSwipe(isLike = true) },
+//            onSuperLikeClick = { }
+//        )
     }
 }
 

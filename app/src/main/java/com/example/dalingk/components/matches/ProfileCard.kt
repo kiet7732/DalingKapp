@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -42,6 +44,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.transformations
 import coil3.size.Precision
 import data.repository.AuthViewModel.UserData
 
@@ -70,14 +73,12 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Card(
         modifier = modifier
-            .width(420.dp)
-            .height(580.dp)
+            .fillMaxSize()
             .clickable {
                 if (hasImages) {
                     currentImageIndex = (currentImageIndex + 1) % userData.imageUrls.size
                 }
             },
-        shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -98,8 +99,7 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
                     model = imageRequest,
                     contentDescription = "Profile picture",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp)),
+                        .fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(id = R.drawable.ic_error),
                     error = painterResource(id = R.drawable.ic_error)
@@ -109,8 +109,7 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
                     painter = painterResource(id = R.drawable.ic_error),
                     contentDescription = "No image available",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp)),
+                        .fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -137,7 +136,9 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .padding(2.dp),
                 ) {
                     Text(
                         text = userData.fullName.ifEmpty { "Unknown" },
@@ -154,13 +155,44 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .padding(4.dp),
                 ) {
                     Text(
                         text = userData.location.ifEmpty { "Unknown" }.uppercase(),
                         color = Color.White.copy(alpha = 0.8f),
                         fontSize = 14.sp
                     )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    userData.interests.forEach { text ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .background(
+                                    color = Color(0xD3ECECEC),
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = text,
+                                color = Color.Black.copy(alpha = 0.8f),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                 }
             }
         }

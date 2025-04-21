@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -129,36 +130,43 @@ fun ChatListUI(
         } else {
             val listState = rememberLazyListState()
 
-            Column(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 // Horizontal avatar list
-                HorizontalAvatarList(chatList = chatList, navController = navController)
-
-                // Filler area with rounded background and chat list
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-                        .background(Color(0xFFFFE6E9))
-                ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(vertical = 8.dp),
-                        state = listState,
-                        contentPadding = PaddingValues(bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(chatList, key = { it.matchId }) { item ->
-                            ChatListItem(item = item, navController = navController)
-                        }
-                    }
+                item {
+                    HorizontalAvatarList(chatList = chatList, navController = navController)
                 }
 
-                // Auto-scroll when new chat appears
-                LaunchedEffect(chatList.size) {
-                    if (chatList.isNotEmpty()) {
-                        listState.animateScrollToItem(0)
+                // Chat list with rounded background filling remaining space
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight() // Lấp đầy chiều cao còn lại
+                            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                            .padding(8.dp)
+                    ) {
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Tin nhắn",
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                color = Color.Black
+                            )
+                            chatList.forEach { item ->
+                                ChatListItem(item = item, navController = navController)
+                            }
+//                            Spacer(modifier = Modifier.height(320.dp))
+                        }
                     }
                 }
             }
@@ -218,6 +226,9 @@ fun HorizontalAvatarList(
                 )
             }
         }
+        item {
+            Spacer(modifier = Modifier.width(500.dp))
+        }
     }
 }
 
@@ -236,7 +247,7 @@ fun ChatListItem(
             },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFE6E9) // Đặt màu nền rõ ràng
+            containerColor = Color(0xFFFFF5F5) // Đặt màu nền rõ ràng
         )
     ) {
         Row(
@@ -271,7 +282,7 @@ fun ChatListItem(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
-//                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = item.latestMessage,
                     color = Color(0xFF383838),

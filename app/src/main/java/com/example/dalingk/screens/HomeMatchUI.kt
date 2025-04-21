@@ -54,11 +54,10 @@ fun HomeMatch(profiles: List<AuthViewModel.UserData>, context: Context, viewMode
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 32.dp)
     ) {
 
         Column {
-              Text(text = "Số lượng người dùng: ${profiles.size - 1} + 1", fontSize = 18.sp, color = Color.Black)
+//              Text(text = "Số lượng người dùng: ${profiles.size - 1} + 1", fontSize = 18.sp, color = Color.Black)
 
             LaunchedEffect(profiles) {
                 Log.d("DEBUG", "Số lượng profiles: ${profiles.size}")
