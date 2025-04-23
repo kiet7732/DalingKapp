@@ -186,6 +186,7 @@ fun ArrowScreen(
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
+                .padding(WindowInsets.systemBars.asPaddingValues()),
         ) {
             LineBig(progress) {
                 if (currentScreen == UserInputViewModel.Screen.INTRO_FORM) {
@@ -219,7 +220,7 @@ fun ArrowScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(24.dp)
+                        .padding(WindowInsets.systemBars.asPaddingValues()),
                 ) {
                     FrameLine()
                     CircularIconButton(
@@ -329,6 +330,7 @@ fun ArrowScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp)
+                    .padding(WindowInsets.systemBars.asPaddingValues()),
             ) {
                 Snackbar(action = {
 //                        TextButton(onClick = { saveStatus = null }) {
@@ -398,7 +400,7 @@ fun LineBig(progress: Float, onBackClick: () -> Unit) {
         )
         Box(
             modifier = Modifier
-                .requiredWidth(160.dp)
+                .requiredWidth(190.dp)
                 .requiredHeight(8.dp)
                 .clip(RoundedCornerShape(50.dp))
                 .background(Color.LightGray)

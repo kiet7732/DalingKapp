@@ -133,7 +133,7 @@ fun ChatListUI(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Horizontal avatar list

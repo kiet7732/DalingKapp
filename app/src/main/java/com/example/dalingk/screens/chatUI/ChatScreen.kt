@@ -126,10 +126,10 @@ fun ChatScreen(
     val pageSize = 50
     var isLoading by remember { mutableStateOf(false) }
 
-    // Chỉ lấy tin nhắn cần hiển thị
+    // Sắp xếp tin nhắn theo thời gian tăng dần
     val displayedMessages = remember(messages, visibleMessageCount) {
         messages
-            .sortedBy { it.timestamp }
+            .sortedBy { it.timestamp } // Sắp xếp tăng dần để tin nhắn cũ ở trên, mới ở dưới
             .takeLast(visibleMessageCount.coerceAtMost(totalMessages))
     }
 
@@ -228,7 +228,7 @@ fun ChatScreen(
                     .padding(horizontal = 8.dp),
                 state = lazyListState,
                 contentPadding = PaddingValues(vertical = 8.dp),
-                reverseLayout = true
+                reverseLayout = false // Bỏ reverseLayout để hiển thị từ trên xuống
             ) {
                 if (isLoading) {
                     item {

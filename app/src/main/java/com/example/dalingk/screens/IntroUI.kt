@@ -50,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.dalingk.auth.PhoneNumberInput
 import com.example.dalingk.R
+import com.example.dalingk.auth.ForgotPassword
 import com.example.dalingk.navigation.Routes
 import com.example.dalingk.ui.theme.DalingKTheme
 import com.example.dalingk.auth.RegisterScreen
@@ -116,6 +117,18 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null, con
                     screenState = Routes.InputLogin
                 }, // Quay lại màn hình nhập số điện thoại
                 onSuccess = { navController.navigate(Routes.InputDetail) }, // Thêm callback mới
+                context
+            )
+        }
+
+        AnimatedVisibility(visible = screenState == Routes.ForgotPassword) {
+            ForgotPassword(
+                viewModel = authViewModel,
+                navController = navController,
+                onBack = {
+                    screenState = Routes.InputLogin
+                }, // Quay lại màn hình nhập số điện thoại
+                onSuccess = { navController.navigate(Routes.InputLogin) }, // Thêm callback mới
                 context
             )
         }

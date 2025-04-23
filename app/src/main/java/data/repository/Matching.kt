@@ -1,6 +1,10 @@
 package data.repository
 
+import android.content.Context
 import android.util.Log
+import coil3.ImageLoader
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -31,7 +35,8 @@ object Matching {
         database: FirebaseDatabase,
         cachedProfiles: MutableStateFlow<List<AuthViewModel.UserData>>,
         isLoading: MutableStateFlow<Boolean>,
-        errorMessage: MutableStateFlow<String?>
+        errorMessage: MutableStateFlow<String?>,
+        context: Context // Thêm context để sử dụng Coil
     ) {
         isLoading.value = true
         errorMessage.value = null
@@ -106,6 +111,24 @@ object Matching {
                     )
 
                     Pair(userData, compatibilityScore)
+                }
+
+                // Preload hình ảnh vào cache
+                val imageLoader = ImageLoader.Builder(context)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .build()
+
+                profilesWithScore.take(5).forEach { (userData, _) ->
+                    userData.imageUrls.forEach { url ->
+                        val request = ImageRequest.Builder(context)
+                            .data(url)
+                            .size(420, 580)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .build()
+                        imageLoader.execute(request)
+                    }
                 }
 
                 // Phân loại và xáo trộn

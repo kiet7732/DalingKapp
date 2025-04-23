@@ -295,13 +295,14 @@ public class AuthViewModel : ViewModel() {
     )
 
     // Gọi MatchingRepository
-    suspend fun loadNewProfiles() {
+    suspend fun loadNewProfiles(context: Context){
         Matching.fetchNewProfiles(
             currentUserId = auth.currentUser?.uid ?: return,
             database = database,
             cachedProfiles = _cachedProfiles,
             isLoading = _isLoading,
-            errorMessage = _errorMessage
+            errorMessage = _errorMessage,
+            context = context
         )
     }
 

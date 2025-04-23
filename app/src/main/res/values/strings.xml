@@ -33,4 +33,5 @@
     <string name="title_activity_location_ui">LocationUi</string>
     <string name="title_activity_dynamic_lottie_animation">DynamicLottieAnimation</string>
     <string name="title_activity_interests_screen">InterestsScreen</string>
+    <string name="title_activity_forgot_password_screen">ForgotPasswordScreen</string>
 </resources>

@@ -56,12 +56,14 @@ fun EditBottomSheet(
     if (isVisible) {
         ModalBottomSheet(
             onDismissRequest = { onDismiss() },
-            sheetState = sheetState
+            sheetState = sheetState,
+            modifier =Modifier.navigationBarsPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 content() // Hiển thị nội dung động

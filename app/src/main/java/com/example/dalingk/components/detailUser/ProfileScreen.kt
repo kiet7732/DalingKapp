@@ -171,8 +171,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {

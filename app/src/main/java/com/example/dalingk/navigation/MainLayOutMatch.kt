@@ -84,8 +84,8 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
         if (userId != null) {
             withContext(Dispatchers.IO) {
                 viewModel.fetchUserData(userId) // Lấy dữ liệu người dùng hiện tại
-                if (selectedIndex == 0) {
-                    viewModel.loadNewProfiles() // Chỉ tải 20 profile khi cần
+                if (selectedIndex <= 2) {
+                    viewModel.loadNewProfiles(context) // Chỉ tải 20 profile khi cần
                 }
             }
         } else {

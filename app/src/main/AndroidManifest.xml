@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" >
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -14,7 +14,12 @@
         android:roundIcon="@drawable/logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.DalingK"
-        tools:targetApi="31" >
+        tools:targetApi="31">
+        <activity
+            android:name=".auth.ForgotPasswordScreen"
+            android:exported="false"
+            android:label="@string/title_activity_forgot_password_screen"
+            android:theme="@style/Theme.DalingK" />
         <activity
             android:name=".components.InterestsScreen"
             android:exported="false"
@@ -187,7 +192,7 @@
             android:name=".navigation.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.DalingK" >
+            android:theme="@style/Theme.DalingK">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

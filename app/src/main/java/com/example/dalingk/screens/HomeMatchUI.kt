@@ -74,7 +74,7 @@ fun HomeMatch(profiles: List<AuthViewModel.UserData>, context: Context, viewMode
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
             }else{
-                SwipeScreen(profiles = profiles, viewModel)
+                SwipeScreen(profiles = profiles, viewModel, context)
             }
 //            SwipeScreen(profiles = profiles)
         }

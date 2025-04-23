@@ -1,5 +1,6 @@
 package com.example.dalingk.components.matches
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -55,7 +56,8 @@ class PhotoSwipeCard : ComponentActivity() {
 @Composable
 fun SwipeScreen(
     profiles: List<AuthViewModel.UserData>,
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel,
+    context: Context
 ) {
     var currentProfileIndex by remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
@@ -66,6 +68,7 @@ fun SwipeScreen(
 
 //    var showMatchNotification by remember { mutableStateOf(false) }
 //    var matchedUserName by remember { mutableStateOf("") }
+
 
     // Khi danh sách profiles thay đổi, reset lại index
     LaunchedEffect(profiles) {
@@ -113,7 +116,7 @@ fun SwipeScreen(
                 currentProfileIndex++
             } else {
                 currentProfileIndex = 0
-                viewModel.loadNewProfiles()
+                viewModel.loadNewProfiles(context)
             }
 
             resetSwipeWithAnimation()
@@ -190,7 +193,13 @@ fun SwipeScreen(
                 )
 
             } else {
-                Text("Không còn hồ sơ nào!", fontSize = 20.sp, color = Color.Gray)
+                Box(
+                  modifier = Modifier
+                      .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ){
+                    Text("Không còn hồ sơ nào!", fontSize = 20.sp, color = Color.Gray)
+                }
             }
         }
 
@@ -212,10 +221,6 @@ fun SwipeScreen(
     }
 }
 
-
-//val profiles = listOf(
-//
-//)
 
 @Preview(showBackground = true)
 @Composable
