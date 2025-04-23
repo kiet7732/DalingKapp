@@ -100,6 +100,7 @@ fun PhoneNumberInput(
     viewModel: AuthViewModel,
     navController: NavController,
     onNext: () -> Unit,
+    onNextSs2: () -> Unit,
     context: Context
 ) {
     var email by remember { mutableStateOf("") }
@@ -250,6 +251,22 @@ fun PhoneNumberInput(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable {
                     onNext()
+                }
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .padding(10.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = "Quên mật khẩu",
+                color = Color(0xFFFF0018),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable {
+                    onNextSs2()
                 }
             )
         }

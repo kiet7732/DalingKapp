@@ -22,7 +22,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -56,6 +59,8 @@ class InputDetailUi : ComponentActivity() {
 
 @Composable
 fun IntroFormUI(viewModel: UserInputViewModel) {
+
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -83,7 +88,8 @@ fun IntroFormUI(viewModel: UserInputViewModel) {
             keyboardType = KeyboardType.Text,
             imeAction = ImeAction.Next,
             shape = RoundedCornerShape(15.dp),
-            placeholder = "Enter your full name"
+            placeholder = "Enter your full name",
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -108,7 +114,8 @@ fun IntroFormUI(viewModel: UserInputViewModel) {
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Next,
                 shape = RoundedCornerShape(15.dp),
-                placeholder = "MM"
+                placeholder = "MM",
+                isError = errorMessage != null
             )
             CustomOutlinedTextField(
                 value = viewModel.birthDay.value,
@@ -122,7 +129,8 @@ fun IntroFormUI(viewModel: UserInputViewModel) {
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Next,
                 shape = RoundedCornerShape(15.dp),
-                placeholder = "DD"
+                placeholder = "DD",
+                isError = errorMessage != null
             )
             CustomOutlinedTextField(
                 value = viewModel.birthYear.value,
@@ -136,7 +144,8 @@ fun IntroFormUI(viewModel: UserInputViewModel) {
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Done,
                 shape = RoundedCornerShape(15.dp),
-                placeholder = "YYYY"
+                placeholder = "YYYY",
+                isError = errorMessage != null
             )
         }
 
@@ -159,7 +168,8 @@ fun CustomOutlinedTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Done,
     shape: RoundedCornerShape = RoundedCornerShape(15.dp),
-    placeholder: String
+    placeholder: String,
+    isError: Boolean
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current  // Quản lý focus để ẩn bàn phím

@@ -98,8 +98,9 @@ fun RegisterScreen(
                 value = email,
                 onValueChange = { email = it },
                 label = "Email",
+                keyboardType = KeyboardType.Email,
                 placeholder = "Enter your email",
-                keyboardType = KeyboardType.Email
+                isError = errorMessage != null
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -109,8 +110,9 @@ fun RegisterScreen(
                 value = phoneNumber,
                 onValueChange = { phoneNumber = it },
                 label = "Phone Number",
+                keyboardType = KeyboardType.Phone,
                 placeholder = "Enter your phone",
-                keyboardType = KeyboardType.Phone
+                isError = errorMessage != null
 
             )
 
@@ -121,8 +123,9 @@ fun RegisterScreen(
                 value = password,
                 onValueChange = { password = it },
                 label = "Password",
+                keyboardType = KeyboardType.Password,
                 placeholder = "Enter your password",
-                keyboardType = KeyboardType.Password
+                isError = errorMessage != null
             )
 
             Spacer(modifier = Modifier.height(20.dp))

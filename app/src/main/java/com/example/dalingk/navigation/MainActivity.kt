@@ -42,6 +42,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.dalingk.auth.ForgotPassword
 import com.example.dalingk.auth.PhoneNumberInput
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -53,6 +54,7 @@ import com.example.dalingk.screens.chatUI.ChatListUI
 import com.example.dalingk.screens.chatUI.ChatScreen
 import com.example.dalingk.screens.LoginScreen
 import com.example.dalingk.components.detailUser.ProfileScreenU
+import com.example.dalingk.navigation.Routes.ForgotPassword
 import data.model.CloudinaryHelper
 import data.repository.AuthViewModel
 import data.viewmodel.UserInputViewModel
@@ -71,12 +73,13 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 )
                 {
+                    //khoitai firebase
                     FirebaseApp.initializeApp(this)
                     val firebaseAppCheck = FirebaseAppCheck.getInstance()
                     firebaseAppCheck.installAppCheckProviderFactory(
                         PlayIntegrityAppCheckProviderFactory.getInstance()
                     )
-
+                    //khoitai
                     CloudinaryHelper.initialize(this)
                     AppNavigation()
                 }
@@ -168,6 +171,16 @@ fun AppNavigation() {
                         viewModel = authViewModel,
                         navController = navController,
                         onNext = { navController.navigate(Routes.Register) },
+                        onNextSs2 =  { navController.navigate(Routes.ForgotPassword) },
+                        context
+                    )
+                }
+
+                composable(Routes.ForgotPassword) {
+                    ForgotPassword(
+                        viewModel = authViewModel,
+                        navController = navController,
+                        onBack = { navController.navigateUp() },
                         context
                     )
                 }

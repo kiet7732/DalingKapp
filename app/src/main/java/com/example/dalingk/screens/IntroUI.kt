@@ -105,6 +105,7 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null, con
                 viewModel = authViewModel,
                 navController = navController,
                 onNext = { screenState = Routes.Register },
+                onNextSs2 = { navController.navigate(Routes.ForgotPassword) },
                 context
             )
         }
@@ -128,7 +129,6 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null, con
                 onBack = {
                     screenState = Routes.InputLogin
                 }, // Quay lại màn hình nhập số điện thoại
-                onSuccess = { navController.navigate(Routes.InputLogin) }, // Thêm callback mới
                 context
             )
         }
