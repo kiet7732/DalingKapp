@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 import data.repository.AuthViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.dalingk.components.MatchNotification
+import data.repository.Matching
 import kotlin.math.min
 
 class PhotoSwipeCard : ComponentActivity() {
@@ -78,6 +79,15 @@ fun SwipeScreen(
         }
     }
 
+    // Preload images for the next two profiles when the index changes
+    LaunchedEffect(currentProfileIndex) {
+        val nextProfiles = profiles.drop(currentProfileIndex + 1).take(2) // Preload next 2 profiles
+        nextProfiles.forEach { profile ->
+            Matching.preloadNextProfile(profile, context)
+            Log.d("DEBUG", "Preloading images for profile: ${profile.userId}")
+        }
+    }
+
     fun resetSwipeWithAnimation() {
         coroutineScope.launch {
             offsetAnimation.animateTo(0f, tween(150))
@@ -104,11 +114,11 @@ fun SwipeScreen(
                 if (isLike) {
                     Log.d("DEBUG", "Liking user: $targetUserId")
 
-                    val isMatched = viewModel.like(targetUserId,it.fullName) //xy ly like macth va shownotif
+                    val isMatched = viewModel.like(targetUserId,it.fullName, context) //xy ly like macth va shownotif
 
                     Log.d("DEBUG", "Is matched: $isMatched")
                 } else {
-                    viewModel.dislike(targetUserId)
+                    viewModel.dislike(targetUserId, context)
                 }
             }
 

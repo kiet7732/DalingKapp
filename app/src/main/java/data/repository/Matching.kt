@@ -161,13 +161,47 @@ object Matching {
         }
     }
 
+
+    // Hàm preload hình ảnh cho danh sách profiles
+    private suspend fun preloadImages(profiles: List<AuthViewModel.UserData>, context: Context) {
+        val imageLoader = ImageLoader.Builder(context)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .build()
+
+        profiles.forEach { userData ->
+            userData.imageUrls.forEach { url ->
+                val request = ImageRequest.Builder(context)
+                    .data(url)
+                    .size(420, 580)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .build()
+                imageLoader.execute(request) // Now safe because we're in a suspend function
+            }
+        }
+    }
+
+    // Hàm preload hình ảnh cho một profile tiếp theo
+    suspend fun preloadNextProfile(
+        nextProfile: AuthViewModel.UserData?,
+        context: Context
+    ) {
+        if (nextProfile == null) return
+
+        withContext(Dispatchers.IO) {
+            preloadImages(listOf(nextProfile), context)
+        }
+    }
+
     suspend fun likeProfile(
         currentUserId: String,
         targetUserId: String,
         database: FirebaseDatabase,
         cachedProfiles: MutableStateFlow<List<AuthViewModel.UserData>>,
         matches: MutableStateFlow<List<AuthViewModel.MatchData>>,
-        errorMessage: MutableStateFlow<String?>
+        errorMessage: MutableStateFlow<String?>,
+        context: Context
     ): Boolean {
         processProfileAction(
             currentUserId,
@@ -177,6 +211,9 @@ object Matching {
             errorMessage,
             true
         )
+        // Tải trước hình ảnh của profile tiếp theo
+        val nextProfile = cachedProfiles.value.firstOrNull()
+        preloadNextProfile(nextProfile, context)
         return checkMutualLike(currentUserId, targetUserId, database, matches)
     }
 
@@ -185,7 +222,8 @@ object Matching {
         targetUserId: String,
         database: FirebaseDatabase,
         cachedProfiles: MutableStateFlow<List<AuthViewModel.UserData>>,
-        errorMessage: MutableStateFlow<String?>
+        errorMessage: MutableStateFlow<String?>,
+        context: Context
     ) {
         processProfileAction(
             currentUserId,
@@ -195,6 +233,9 @@ object Matching {
             errorMessage,
             false
         )
+        // Tải trước hình ảnh của profile tiếp theo
+        val nextProfile = cachedProfiles.value.firstOrNull()
+        preloadNextProfile(nextProfile, context)
     }
 
     private fun processProfileAction(

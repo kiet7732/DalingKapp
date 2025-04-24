@@ -312,7 +312,7 @@ public class AuthViewModel : ViewModel() {
     private val _matchedUserName = MutableStateFlow("")
     val matchedUserName: StateFlow<String> = _matchedUserName.asStateFlow()
 
-    suspend fun like(targetUserId: String, fullName: String): Boolean {
+    suspend fun like(targetUserId: String, fullName: String, context: Context): Boolean {
         val currentUserId = auth.currentUser?.uid ?: return false
 
         val isMatched = Matching.likeProfile(
@@ -321,24 +321,26 @@ public class AuthViewModel : ViewModel() {
             database = database,
             cachedProfiles = _cachedProfiles,
             matches = _matches,
-            errorMessage = _errorMessage
+            errorMessage = _errorMessage,
+            context = context
         )
 
         if (isMatched) {
-            _matchedUserName.value = fullName // Lấy từ dữ liệu
+            _matchedUserName.value = fullName
             _showMatchNotification.value = true
         }
 
         return isMatched
     }
 
-    suspend fun dislike(targetUserId: String) {
+    suspend fun dislike(targetUserId: String, context: Context) {
         Matching.dislikeProfile(
             currentUserId = auth.currentUser?.uid ?: return,
             targetUserId = targetUserId,
             database = database,
             cachedProfiles = _cachedProfiles,
-            errorMessage = _errorMessage
+            errorMessage = _errorMessage,
+            context = context
         )
     }
 

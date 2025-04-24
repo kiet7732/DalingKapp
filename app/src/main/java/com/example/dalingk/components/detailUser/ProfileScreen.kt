@@ -2,21 +2,14 @@ package com.example.dalingk.components.detailUser
 
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle
-import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.dalingk.ui.theme.DalingKTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -24,43 +17,31 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.ImageLoader
+import coil3.compose.AsyncImage
 import com.example.dalingk.FullScreenLoading
 import com.example.dalingk.navigation.Routes
 import com.example.dalingk.components.EditBottomSheet
+import com.example.dalingk.ui.theme.DalingKTheme
 import com.google.firebase.database.FirebaseDatabase
-import data.viewmodel.UserInputViewModel
 import data.repository.AuthViewModel
+import data.viewmodel.UserInputViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import util.FileUtil
-
-class ProfileScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            DalingKTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                )
-                {
-//                    ProfileScreenU()
-                }
-            }
-        }
-    }
-}
-
 
 enum class EditSection {
     INTRO_FORM, GENDER, LOOKING_FOR, INTEREST, UPPHOTO, LOCATION
@@ -93,19 +74,11 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                 EditSection.INTRO_FORM -> {
                     userInputViewModel.fullName.value = data.fullName ?: ""
                     val birthdayParts = data.birthday?.split("-") ?: emptyList()
-                    Log.d(
-                        "ProfileScreenU",
-                        "Birthday from userData: ${data.birthday}, split parts: $birthdayParts"
-                    )
                     if (birthdayParts.size == 3) {
                         userInputViewModel.birthDay.value = birthdayParts[0]
                         userInputViewModel.birthMonth.value = birthdayParts[1]
                         userInputViewModel.birthYear.value = birthdayParts[2]
                     } else {
-                        Log.w(
-                            "ProfileScreenU",
-                            "Invalid birthday format: ${data.birthday}, resetting to empty"
-                        )
                         userInputViewModel.birthDay.value = ""
                         userInputViewModel.birthMonth.value = ""
                         userInputViewModel.birthYear.value = ""
@@ -121,13 +94,8 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                 EditSection.UPPHOTO -> {
                     val imageUrls = data.imageUrls ?: List(6) { "" }
                     userInputViewModel.photoUrls.value = imageUrls
-                    Log.d(
-                        "ProfileScreenU",
-                        "Đồng bộ ảnh để hiển thị trong UpPhotoUi: ${userInputViewModel.photoUrls.value}"
-                    )
                 }
             }
-            Log.d("ProfileScreenU", "Đồng bộ dữ liệu cho $section hoàn tất")
         }
     }
 
@@ -148,264 +116,346 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                 EditSection.INTEREST -> {
                     val currentInterests = userInputViewModel.interests.value
                     val originalInterests = data.interests ?: emptyList<String>()
-                    !currentInterests.equals(originalInterests) // Sử dụng equals để so sánh List
+                    !currentInterests.equals(originalInterests)
                 }
 
                 EditSection.UPPHOTO -> userInputViewModel.photoUrls.value != (data.imageUrls
                     ?: List(6) { "" })
             }
         }
-        return false // Nếu không có userData, không cập nhật
+        return false
     }
 
     val imageUrls = remember(userData) { userData?.imageUrls ?: emptyList() }
     val scrollState = rememberScrollState()
 
+    // Giao diện
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF5F5F5), Color(0xFFE0E0E0))
+                )
+            )
+            .padding(WindowInsets.systemBars.asPaddingValues())
             .verticalScroll(scrollState)
-            .padding(WindowInsets.systemBars.asPaddingValues()),
-        horizontalAlignment = Alignment.Start
     ) {
+        // Thanh tiêu đề
         Row(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {
-                navController.currentBackStackEntry?.savedStateHandle?.set(Routes.DetailU, 3)
-                navController.navigate(Routes.MainMatch)
-            }) {
+            IconButton(
+                onClick = {
+                    navController.currentBackStackEntry?.savedStateHandle?.set(Routes.DetailU, 3)
+                    navController.navigate(Routes.MainMatch)
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .shadow(4.dp, CircleShape)
+                    .background(Color.White, CircleShape)
+                    .clip(CircleShape)
+            ) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint  = Color.Black
+                    contentDescription = "Quay lại",
+                    tint = Color.Black
                 )
             }
+            Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = "Hồ Sơ",
-                style = MaterialTheme.typography.headlineSmall,
+                text = "Hồ Sơ Của Bạn",
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Họ và tên") {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                lastClickTime = currentTime
-                coroutineScope.launch {
-                    isLoading = true
-                    syncDataForEdit(EditSection.INTRO_FORM)
-                    editSection = EditSection.INTRO_FORM
-                    showBottomSheet = true
-                    isLoading = false
-                    Log.d(
-                        "ProfileScreenU",
-                        "Mở EditBottomSheet cho INTRO_FORM: showBottomSheet=$showBottomSheet"
-                    )
-                }
-            } else {
-                Log.d(
-                    "ProfileScreenU",
-                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-                )
-            }
-        }
-        Row(modifier = Modifier.padding(end = 8.dp)) {
-            Text(
-                text = userData?.fullName ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black
+                color = Color(0xFF212121)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Dịa chỉ") {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                lastClickTime = currentTime
-                coroutineScope.launch {
-                    isLoading = true
-                    syncDataForEdit(EditSection.LOCATION)
-                    editSection = EditSection.LOCATION
-                    showBottomSheet = true
-                    isLoading = false
-                    Log.d(
-                        "ProfileScreenU",
-                        "Mở EditBottomSheet cho LOCATION: showBottomSheet=$showBottomSheet"
-                    )
-                }
-                Log.d("ProfileScreenU", "userData.location: ${userData?.location}")
-            } else {
-                Log.d(
-                    "ProfileScreenU",
-                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-                )
-            }
-        }
-
-        Row(modifier = Modifier.padding(end = 8.dp)) {
-            Text(
-                text = userData?.location ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Ảnh") {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                lastClickTime = currentTime
-                coroutineScope.launch {
-                    isLoading = true
-                    syncDataForEdit(EditSection.UPPHOTO)
-                    editSection = EditSection.UPPHOTO
-                    showBottomSheet = true
-                    isLoading = false
-                    Log.d(
-                        "ProfileScreenU",
-                        "Mở EditBottomSheet cho UPPHOTO: showBottomSheet=$showBottomSheet"
-                    )
-                }
-            } else {
-                Log.d(
-                    "ProfileScreenU",
-                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-                )
-            }
-        }
-        Box(modifier = Modifier.fillMaxWidth()) {
-            DisplayUserPhotos(imageUrls = imageUrls, context)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Giới tính") {
-//            val currentTime = System.currentTimeMillis()
-//            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-//                lastClickTime = currentTime
-//                coroutineScope.launch {
-//                    isLoading = true
-//                    syncDataForEdit(EditSection.GENDER)
-//                    editSection = EditSection.GENDER
-//                    showBottomSheet = true
-//                    isLoading = false
-//                    Log.d(
-//                        "ProfileScreenU",
-//                        "Mở EditBottomSheet cho GENDER: showBottomSheet=$showBottomSheet"
-//                    )
-//                }
-//            } else {
-//                Log.d(
-//                    "ProfileScreenU",
-//                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-//                )
-//            }
-            saveStatus = "Không thể đổi giới tính"
-
-        }
-        Row(modifier = Modifier.padding(end = 8.dp)) {
-            Text(
-                text = userData?.gender ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Sở thích") {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                lastClickTime = currentTime
-                coroutineScope.launch {
-                    isLoading = true
-                    syncDataForEdit(EditSection.INTEREST)
-                    editSection = EditSection.INTEREST
-                    showBottomSheet = true
-                    isLoading = false
-                    Log.d(
-                        "ProfileScreenU",
-                        "Mở EditBottomSheet cho INTEREST: showBottomSheet=$showBottomSheet"
-                    )
-                }
-            } else {
-                Log.d(
-                    "ProfileScreenU",
-                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-                )
-            }
-        }
-        Column {
-            (userData?.interests ?: emptyList()).forEachIndexed { index, hobby ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .background(Color(0xFF4169E1), shape = MaterialTheme.shapes.medium)
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = hobby.ifEmpty { "" },
-                        color = if (hobby.isEmpty()) Color.Gray else Color.White,
-                        fontSize = 14.sp
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextCus(label = "Mối quan hệ tìm kiếm") {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                lastClickTime = currentTime
-                coroutineScope.launch {
-                    isLoading = true
-                    syncDataForEdit(EditSection.LOOKING_FOR)
-                    editSection = EditSection.LOOKING_FOR
-                    showBottomSheet = true
-                    isLoading = false
-                    Log.d(
-                        "ProfileScreenU",
-                        "Mở EditBottomSheet cho LOOKING_FOR: showBottomSheet=$showBottomSheet"
-                    )
-                }
-            } else {
-                Log.d(
-                    "ProfileScreenU",
-                    "Nhấn bị chặn: isLoading=$isLoading, isSaving=$isSaving, timeDiff=${currentTime - lastClickTime}"
-                )
-            }
-        }
-        Box(
+        // Danh sách ảnh (bao gồm ảnh chính và 5 ảnh phụ)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
-                .background(Color(0xFF4169E1), shape = MaterialTheme.shapes.medium)
-                .padding(8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = userData?.lookingFor?.ifEmpty { "" } ?: "",
-                color = if (userData?.lookingFor.isNullOrEmpty()) Color.Gray else Color.White,
-                fontSize = 14.sp
-            )
+            // Ảnh chính (ô đầu tiên)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .shadow(8.dp, RoundedCornerShape(16.dp))
+            ) {
+                if (imageUrls.isNotEmpty() && imageUrls[0].isNotEmpty()) {
+                    AsyncImage(
+                        model = imageUrls[0],
+                        contentDescription = "Ảnh hồ sơ chính",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFE0E0E0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Chưa có ảnh", color = Color.Gray, fontSize = 16.sp)
+                    }
+                }
+            }
+
+            // Hàng 1: 3 ô ảnh phụ
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(3) { index ->
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .padding(start = 4.dp, end = 4.dp)
+                    ) {
+                        val url = imageUrls.getOrNull(index + 1) ?: ""
+                        if (url.isNotEmpty()) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "Ảnh hồ sơ phụ ${index + 1}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+",
+                                    color = Color.Gray,
+                                    fontSize = 12.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Hàng 2: 2 ô ảnh phụ
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(2) { index ->
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .padding(start = 4.dp, end = 4.dp)
+                    ) {
+                        val url = imageUrls.getOrNull(index + 4) ?: "" // Bắt đầu từ ảnh thứ 4 (index 3 + 1)
+                        if (url.isNotEmpty()) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "Ảnh hồ sơ phụ ${index + 4}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+",
+                                    color = Color.Gray,
+                                    fontSize = 12.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        // Nút chỉnh sửa ảnh
+        ProfileCard(
+            title = "Ảnh Hồ Sơ",
+            onEditClick = {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                    lastClickTime = currentTime
+                    coroutineScope.launch {
+                        isLoading = true
+                        syncDataForEdit(EditSection.UPPHOTO)
+                        editSection = EditSection.UPPHOTO
+                        showBottomSheet = true
+                        isLoading = false
+                    }
+                }
+            }
+        )
+
+        // Thông tin cá nhân
+        ProfileCard(
+            title = "Họ và Tên",
+            content = userData?.fullName ?: "Chưa cập nhật",
+            onEditClick = {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                    lastClickTime = currentTime
+                    coroutineScope.launch {
+                        isLoading = true
+                        syncDataForEdit(EditSection.INTRO_FORM)
+                        editSection = EditSection.INTRO_FORM
+                        showBottomSheet = true
+                        isLoading = false
+                    }
+                }
+            }
+        )
+
+        ProfileCard(
+            title = "Địa Chỉ",
+            content = userData?.location ?: "Chưa cập nhật",
+            onEditClick = {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                    lastClickTime = currentTime
+                    coroutineScope.launch {
+                        isLoading = true
+                        syncDataForEdit(EditSection.LOCATION)
+                        editSection = EditSection.LOCATION
+                        showBottomSheet = true
+                        isLoading = false
+                    }
+                }
+            }
+        )
+
+        ProfileCard(
+            title = "Giới Tính",
+            content = userData?.gender ?: "Chưa cập nhật",
+            onEditClick = {
+                saveStatus = "Không thể đổi giới tính"
+            }
+        )
+
+        ProfileCard(
+            title = "Sở Thích",
+            content = null,
+            onEditClick = {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                    lastClickTime = currentTime
+                    coroutineScope.launch {
+                        isLoading = true
+                        syncDataForEdit(EditSection.INTEREST)
+                        editSection = EditSection.INTEREST
+                        showBottomSheet = true
+                        isLoading = false
+                    }
+                }
+            }
+        ) {
+            // Sử dụng let để tránh lỗi smart cast
+            userData?.let { data ->
+                if (data.interests.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        data.interests.chunked(3).forEach { chunk ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                chunk.forEach { hobby ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    colors = listOf(
+                                                        Color(0xFF4169E1),
+                                                        Color(0xFF1E90FF)
+                                                    )
+                                                )
+                                            )
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = hobby,
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                // Fill remaining space if chunk is smaller than 3
+                                repeat(3 - chunk.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "Chưa có sở thích",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            } ?: run {
+                Text(
+                    text = "Chưa có sở thích",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+
+        ProfileCard(
+            title = "Mối Quan Hệ Tìm Kiếm",
+            content = userData?.lookingFor ?: "Chưa cập nhật",
+            onEditClick = {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                    lastClickTime = currentTime
+                    coroutineScope.launch {
+                        isLoading = true
+                        syncDataForEdit(EditSection.LOOKING_FOR)
+                        editSection = EditSection.LOOKING_FOR
+                        showBottomSheet = true
+                        isLoading = false
+                    }
+                }
+            }
+        )
+
         Spacer(modifier = Modifier.height(100.dp))
     }
 
     EditBottomSheet(
         isVisible = showBottomSheet,
         onDismiss = {
-            if (isSaving) {
-                Log.d("ProfileScreenU", "Đóng bị chặn vì đang lưu: isSaving=$isSaving")
-                return@EditBottomSheet
-            }
+            if (isSaving) return@EditBottomSheet
             coroutineScope.launch {
                 if (userData != null && currentUserId.isNotEmpty() && editSection != null) {
                     isSaving = true
@@ -438,11 +488,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                             saveStatus = "$error"
                                         }
                                     )
-                                } else {
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "Không có thay đổi trong INTRO_FORM, không cập nhật"
-                                    )
                                 }
                             }
 
@@ -460,15 +505,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                         onError = { error ->
                                             saveStatus = "$error"
                                         }
-                                    )
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "userData.location: ${userData?.location}"
-                                    )
-                                } else {
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "Không có thay đổi trong LOCATION, không cập nhật"
                                     )
                                 }
                             }
@@ -488,11 +524,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                             saveStatus = "$error"
                                         }
                                     )
-                                } else {
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "Không có thay đổi trong GENDER, không cập nhật"
-                                    )
                                 }
                             }
 
@@ -510,11 +541,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                         onError = { error ->
                                             saveStatus = "$error"
                                         }
-                                    )
-                                } else {
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "Không có thay đổi trong LOOKING_FOR, không cập nhật"
                                     )
                                 }
                             }
@@ -534,11 +560,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                             saveStatus = "$error"
                                         }
                                     )
-                                } else {
-                                    Log.d(
-                                        "ProfileScreenU",
-                                        "Không có thay đổi trong INTEREST, không cập nhật"
-                                    )
                                 }
                             }
 
@@ -553,7 +574,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                 var completedUploads = 0
 
                                 if (uploadCount == 0) {
-                                    // Nếu không có ảnh mới cần tải lên, kiểm tra thay đổi và lưu trực tiếp
                                     if (hasDataChanged(EditSection.UPPHOTO)) {
                                         userInputViewModel.updateSingleField(
                                             database = database,
@@ -563,23 +583,13 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                             onSuccess = {
                                                 authViewModel.fetchUserData(currentUserId)
                                                 saveStatus = "Lưu thành công"
-                                                Log.d(
-                                                    "ProfileScreenU",
-                                                    "Ảnh đã được cập nhật: ${userInputViewModel.photoUrls.value}"
-                                                )
                                             },
                                             onError = { error ->
                                                 saveStatus = "$error"
                                             }
                                         )
-                                    } else {
-                                        Log.d(
-                                            "ProfileScreenU",
-                                            "Không có thay đổi trong UPPHOTO, không cập nhật"
-                                        )
                                     }
                                 } else {
-                                    // Nếu có ảnh mới (content:// hoặc file://), tải lên Cloudinary
                                     localUris.forEachIndexed { index, uri ->
                                         if (uri.isNotEmpty() && (uri.startsWith("content://") || uri.startsWith(
                                                 "file://"
@@ -596,7 +606,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                                         uploadedUrls[index] = url
                                                         completedUploads++
                                                         if (completedUploads == uploadCount) {
-                                                            // Cập nhật photoUrls với các URL đã tải lên
                                                             userInputViewModel.photoUrls.value =
                                                                 uploadedUrls
                                                             userInputViewModel.updateSingleField(
@@ -609,10 +618,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                                                         currentUserId
                                                                     )
                                                                     saveStatus = "Lưu thành công"
-                                                                    Log.d(
-                                                                        "ProfileScreenU",
-                                                                        "Ảnh đã được cập nhật: ${userInputViewModel.photoUrls.value}"
-                                                                    )
                                                                 },
                                                                 onError = { error ->
                                                                     saveStatus = "$error"
@@ -622,41 +627,26 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                                     },
                                                     onError = { error ->
                                                         saveStatus = "Lỗi khi tải ảnh: $error"
-                                                        Log.e(
-                                                            "ProfileScreenU",
-                                                            "Lỗi khi tải ảnh lên Cloudinary: $error"
-                                                        )
                                                     }
                                                 )
                                             }
                                         } else {
-                                            // Giữ nguyên URL cũ nếu không phải là ảnh mới
                                             uploadedUrls[index] = uri
                                         }
                                     }
                                 }
                             }
 
-                            else -> {
-                                Log.d("ProfileScreenU", "Không có editSection hợp lệ")
-                            }
+                            else -> {}
                         }
                     } finally {
                         isSaving = false
                         showBottomSheet = false
                         editSection = null
-                        Log.d(
-                            "ProfileScreenU",
-                            "Đóng EditBottomSheet: isSaving=$isSaving, showBottomSheet=$showBottomSheet, editSection=$editSection"
-                        )
                     }
                 } else {
                     showBottomSheet = false
                     editSection = null
-                    Log.d(
-                        "ProfileScreenU",
-                        "Đóng EditBottomSheet (không có dữ liệu): showBottomSheet=$showBottomSheet, editSection=$editSection"
-                    )
                 }
             }
         },
@@ -674,7 +664,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                         val uris = List(6) { index ->
                             if (photoUrls[index].isNotEmpty()) Uri.parse(photoUrls[index]) else null
                         }
-                        Log.d("ProfileScreenU", "Đồng bộ ảnh vào UpPhotoUi: $uris")
                     }
                 }
 
@@ -689,13 +678,28 @@ fun ProfileScreenU(navController: NavController, context: Context) {
             saveStatus = null
         }
     }
+
     if (saveStatus != null) {
-        Snackbar(
-            modifier = Modifier.padding(16.dp),
-            action = { Button(onClick = { saveStatus = null }) { Text("OK") } }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(WindowInsets.systemBars.asPaddingValues())
         ) {
-            Text(saveStatus ?: "")
+            Snackbar(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF212121)),
+                action = {
+                    TextButton(onClick = { saveStatus = null }) {
+                        Text("OK", color = Color.White)
+                    }
+                }
+            ) {
+                Text(saveStatus ?: "", color = Color.White)
+            }
         }
+
     }
 
     DisposableEffect(Unit) {
@@ -707,42 +711,63 @@ fun ProfileScreenU(navController: NavController, context: Context) {
 }
 
 @Composable
-fun TextCus(
-    label: String,
-    onEditClick: () -> Unit
+fun ProfileCard(
+    title: String,
+    content: String? = null,
+    onEditClick: () -> Unit,
+    additionalContent: (@Composable () -> Unit)? = null
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(4.dp, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        // Hiển thị nhãn (Label)
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-        )
-        // Biểu tượng chỉnh sửa
-        IconButton(onClick = onEditClick) {
-            Icon(
-                imageVector = Icons.Filled.Edit,
-                contentDescription = null,
-                tint = Color.Red
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121)
+                )
+                IconButton(
+                    onClick = onEditClick,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFFFF4081), Color(0xFFF50057))
+                            )
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Chỉnh sửa",
+                        tint = Color.White
+                    )
+                }
+            }
+            if (content != null) {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF424242),
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            additionalContent?.invoke()
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview9() {
-    DalingKTheme {
-//        ProfileScreenU()
     }
 }

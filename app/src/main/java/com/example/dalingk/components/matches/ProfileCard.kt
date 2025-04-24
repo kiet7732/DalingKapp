@@ -84,22 +84,17 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasImages) {
                 val imageUrl = userData.imageUrls.getOrNull(currentImageIndex) ?: ""
-                val imageRequest = remember(imageUrl) {
-                    ImageRequest.Builder(context)
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
                         .data(imageUrl)
                         .crossfade(true)
                         .memoryCachePolicy(CachePolicy.ENABLED)
                         .diskCachePolicy(CachePolicy.ENABLED)
-                        .size(420, 580) // Resize ảnh theo kích thước khung
-                        .precision(Precision.INEXACT) // Giảm độ chính xác để tiết kiệm bộ nhớ
-                        .build()
-                }
-
-                AsyncImage(
-                    model = imageRequest,
+                        .size(420, 580)
+                        .precision(Precision.INEXACT)
+                        .build(),
                     contentDescription = "Profile picture",
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(id = R.drawable.ic_error),
                     error = painterResource(id = R.drawable.ic_error)
@@ -108,8 +103,7 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_error),
                     contentDescription = "No image available",
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
