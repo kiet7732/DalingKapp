@@ -69,9 +69,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DatabaseReference
 import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
@@ -85,12 +88,23 @@ class ChatScreen : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                )
-                {
-
+                ) {
+                    // Truyền NavController và matchId từ Intent hoặc savedInstanceState
+                    val matchId = intent.getStringExtra("matchId") ?: return@Surface
+                    ChatScreen(navController = rememberNavController(), matchId = matchId)
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        util.AppState.setAppForeground(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        util.AppState.setAppForeground(false)
     }
 }
 
@@ -110,6 +124,7 @@ fun ChatScreen(
         viewModel.loadMessages(matchId)
     }
     val messages by viewModel.messages.collectAsState()
+
 
     // Lấy thông tin người dùng đối phương
     var userData by remember { mutableStateOf<UserData?>(null) }

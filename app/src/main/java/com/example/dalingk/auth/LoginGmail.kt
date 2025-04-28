@@ -95,6 +95,7 @@ class StartUI : ComponentActivity() {
         }
     }
 }
+
 @Composable
 fun PhoneNumberInput(
     viewModel: AuthViewModel,

@@ -2,6 +2,11 @@ package com.example.dalingk.components.detailUser
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,16 +19,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -60,6 +69,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var lastClickTime by remember { mutableStateOf(0L) }
+    var selectedPhotoIndex by remember { mutableStateOf(0) }
 
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty() && userData == null) {
@@ -67,7 +77,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
         }
     }
 
-    // Hàm đồng bộ dữ liệu bất đồng bộ
+    // Hàm đồng bộ dữ liệu bất đồng bộ (giữ nguyên logic)
     suspend fun syncDataForEdit(section: EditSection) {
         userData?.let { data ->
             when (section) {
@@ -99,7 +109,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
         }
     }
 
-    // Hàm kiểm tra xem dữ liệu có thay đổi hay không
+    // Hàm kiểm tra xem dữ liệu có thay đổi hay không (giữ nguyên logic)
     fun hasDataChanged(section: EditSection): Boolean {
         userData?.let { data ->
             return when (section) {
@@ -128,330 +138,607 @@ fun ProfileScreenU(navController: NavController, context: Context) {
 
     val imageUrls = remember(userData) { userData?.imageUrls ?: emptyList() }
     val scrollState = rememberScrollState()
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF6A11CB),
+            Color(0xFF2575FC)
+        )
+    )
 
-    // Giao diện
-    Column(
+    // Thiết kế giao diện mới
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF5F5F5), Color(0xFFE0E0E0))
-                )
-            )
-            .padding(WindowInsets.systemBars.asPaddingValues())
-            .verticalScroll(scrollState)
+            .background(Color(0xFFF3F4F6))
     ) {
-        // Thanh tiêu đề
-        Row(
+        // Hình nền trên cùng
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = {
-                    navController.currentBackStackEntry?.savedStateHandle?.set(Routes.DetailU, 3)
-                    navController.navigate(Routes.MainMatch)
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .shadow(4.dp, CircleShape)
-                    .background(Color.White, CircleShape)
-                    .clip(CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Quay lại",
-                    tint = Color.Black
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = "Hồ Sơ Của Bạn",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF212121)
-            )
-        }
+                .height(260.dp)
+                .background(gradientBackground)
+        )
 
-        // Danh sách ảnh (bao gồm ảnh chính và 5 ảnh phụ)
+        // Nội dung chính
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .padding(WindowInsets.systemBars.asPaddingValues())
+                .verticalScroll(scrollState)
         ) {
-            // Ảnh chính (ô đầu tiên)
+            // Thanh tiêu đề
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                            Routes.DetailU,
+                            3
+                        )
+                        navController.navigate(Routes.MainMatch)
+                    },
+                    modifier = Modifier
+                        .size(42.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                        .clip(CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "Quay lại",
+                        tint = Color(0xFF6A11CB)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Text(
+                    text = "Hồ Sơ Của Bạn",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Ảnh đại diện chính và thông tin nổi bật
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .shadow(8.dp, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp)
             ) {
-                if (imageUrls.isNotEmpty() && imageUrls[0].isNotEmpty()) {
-                    AsyncImage(
-                        model = imageUrls[0],
-                        contentDescription = "Ảnh hồ sơ chính",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Ảnh chính làm avatar
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(CircleShape)
+                            .border(4.dp, Color.White, CircleShape)
+                            .shadow(8.dp, CircleShape)
+                            .clickable {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                    lastClickTime = currentTime
+                                    coroutineScope.launch {
+                                        isLoading = true
+                                        syncDataForEdit(EditSection.UPPHOTO)
+                                        editSection = EditSection.UPPHOTO
+                                        showBottomSheet = true
+                                        isLoading = false
+                                    }
+                                }
+                            }
+                    ) {
+                        if (imageUrls.isNotEmpty() && imageUrls[0].isNotEmpty()) {
+                            AsyncImage(
+                                model = imageUrls[0],
+                                contentDescription = "Ảnh hồ sơ chính",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Person,
+                                    contentDescription = "Thêm ảnh",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+                        }
+
+                        // Nút chỉnh sửa ảnh
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .align(Alignment.BottomEnd)
+                                .offset(x = (-8).dp, y = (-8).dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFF4081))
+                                .clickable {
+                                    val currentTime = System.currentTimeMillis()
+                                    if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                        lastClickTime = currentTime
+                                        coroutineScope.launch {
+                                            isLoading = true
+                                            syncDataForEdit(EditSection.UPPHOTO)
+                                            editSection = EditSection.UPPHOTO
+                                            showBottomSheet = true
+                                            isLoading = false
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Chỉnh sửa ảnh",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Họ tên và độ tuổi
+                    Text(
+                        text = userData?.fullName ?: "Chưa cập nhật",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1F2937)
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFE0E0E0)),
-                        contentAlignment = Alignment.Center
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Thông tin giới tính và tìm kiếm
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Text("Chưa có ảnh", color = Color.Gray, fontSize = 16.sp)
+                        val genderIcon = if (userData?.gender == "Nam") {
+                            Icons.Outlined.Male
+                        } else {
+                            Icons.Outlined.Female
+                        }
+
+                        Icon(
+                            imageVector = genderIcon,
+                            contentDescription = "Giới tính",
+                            tint = Color(0xFF6A11CB),
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Text(
+                            text = userData?.gender ?: "Chưa cập nhật",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF4B5563)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF9CA3AF))
+                        )
+
+                        Text(
+                            text = "Tìm kiếm: ${userData?.lookingFor ?: "Chưa cập nhật"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF4B5563)
+                        )
                     }
                 }
             }
 
-            // Hàng 1: 3 ô ảnh phụ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Bộ sưu tập ảnh
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                repeat(3) { index ->
-                    Box(
-                        modifier = Modifier
-                            .width(100.dp)
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .padding(start = 4.dp, end = 4.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Bộ Sưu Tập Ảnh",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1F2937)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        val url = imageUrls.getOrNull(index + 1) ?: ""
-                        if (url.isNotEmpty()) {
-                            AsyncImage(
-                                model = url,
-                                contentDescription = "Ảnh hồ sơ phụ ${index + 1}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
+                        items(5) { index ->
+                            val actualIndex = index + 1 // Bắt đầu từ ảnh thứ 2 (index 1)
+                            val imageUrl =
+                                if (imageUrls.size > actualIndex) imageUrls[actualIndex] else ""
+
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFE0E0E0)),
+                                    .size(120.dp, 160.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF3F4F6))
+                                    .clickable {
+                                        val currentTime = System.currentTimeMillis()
+                                        if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                            lastClickTime = currentTime
+                                            selectedPhotoIndex = actualIndex
+                                            coroutineScope.launch {
+                                                isLoading = true
+                                                syncDataForEdit(EditSection.UPPHOTO)
+                                                editSection = EditSection.UPPHOTO
+                                                showBottomSheet = true
+                                                isLoading = false
+                                            }
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "+",
-                                    color = Color.Gray,
-                                    fontSize = 12.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Hàng 2: 2 ô ảnh phụ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(2) { index ->
-                    Box(
-                        modifier = Modifier
-                            .width(100.dp)
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .padding(start = 4.dp, end = 4.dp)
-                    ) {
-                        val url = imageUrls.getOrNull(index + 4) ?: "" // Bắt đầu từ ảnh thứ 4 (index 3 + 1)
-                        if (url.isNotEmpty()) {
-                            AsyncImage(
-                                model = url,
-                                contentDescription = "Ảnh hồ sơ phụ ${index + 4}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFE0E0E0)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+",
-                                    color = Color.Gray,
-                                    fontSize = 12.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Nút chỉnh sửa ảnh
-        ProfileCard(
-            title = "Ảnh Hồ Sơ",
-            onEditClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                    lastClickTime = currentTime
-                    coroutineScope.launch {
-                        isLoading = true
-                        syncDataForEdit(EditSection.UPPHOTO)
-                        editSection = EditSection.UPPHOTO
-                        showBottomSheet = true
-                        isLoading = false
-                    }
-                }
-            }
-        )
-
-        // Thông tin cá nhân
-        ProfileCard(
-            title = "Họ và Tên",
-            content = userData?.fullName ?: "Chưa cập nhật",
-            onEditClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                    lastClickTime = currentTime
-                    coroutineScope.launch {
-                        isLoading = true
-                        syncDataForEdit(EditSection.INTRO_FORM)
-                        editSection = EditSection.INTRO_FORM
-                        showBottomSheet = true
-                        isLoading = false
-                    }
-                }
-            }
-        )
-
-        ProfileCard(
-            title = "Địa Chỉ",
-            content = userData?.location ?: "Chưa cập nhật",
-            onEditClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                    lastClickTime = currentTime
-                    coroutineScope.launch {
-                        isLoading = true
-                        syncDataForEdit(EditSection.LOCATION)
-                        editSection = EditSection.LOCATION
-                        showBottomSheet = true
-                        isLoading = false
-                    }
-                }
-            }
-        )
-
-        ProfileCard(
-            title = "Giới Tính",
-            content = userData?.gender ?: "Chưa cập nhật",
-            onEditClick = {
-                saveStatus = "Không thể đổi giới tính"
-            }
-        )
-
-        ProfileCard(
-            title = "Sở Thích",
-            content = null,
-            onEditClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                    lastClickTime = currentTime
-                    coroutineScope.launch {
-                        isLoading = true
-                        syncDataForEdit(EditSection.INTEREST)
-                        editSection = EditSection.INTEREST
-                        showBottomSheet = true
-                        isLoading = false
-                    }
-                }
-            }
-        ) {
-            // Sử dụng let để tránh lỗi smart cast
-            userData?.let { data ->
-                if (data.interests.isNotEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        data.interests.chunked(3).forEach { chunk ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                chunk.forEach { hobby ->
+                                if (imageUrl.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = "Ảnh hồ sơ phụ ${index + 1}",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(12.dp))
+                                            .fillMaxSize()
                                             .background(
                                                 Brush.linearGradient(
                                                     colors = listOf(
-                                                        Color(0xFF4169E1),
-                                                        Color(0xFF1E90FF)
+                                                        Color(0xFFE0E0E0),
+                                                        Color(0xFFEEEEEE)
                                                     )
                                                 )
-                                            )
-                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = hobby,
-                                            color = Color.White,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.AddPhotoAlternate,
+                                                contentDescription = "Thêm ảnh",
+                                                tint = Color(0xFF9CA3AF),
+                                                modifier = Modifier.size(32.dp)
+                                            )
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            Text(
+                                                text = "Thêm ảnh",
+                                                color = Color(0xFF9CA3AF),
+                                                fontSize = 12.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
-                                // Fill remaining space if chunk is smaller than 3
-                                repeat(3 - chunk.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
-                } else {
-                    Text(
-                        text = "Chưa có sở thích",
-                        color = Color.Gray,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
                 }
-            } ?: run {
-                Text(
-                    text = "Chưa có sở thích",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp)
+            }
+
+            // Thông tin cá nhân
+            ProfileInfoSection(
+                title = "Thông Tin Cá Nhân",
+                items = listOf(
+                    ProfileInfoItem(
+                        icon = Icons.Outlined.Person,
+                        label = "Họ và Tên",
+                        value = userData?.fullName ?: "Chưa cập nhật",
+                        onEditClick = {
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                lastClickTime = currentTime
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    syncDataForEdit(EditSection.INTRO_FORM)
+                                    editSection = EditSection.INTRO_FORM
+                                    showBottomSheet = true
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    ),
+                    ProfileInfoItem(
+                        icon = Icons.Outlined.LocationOn,
+                        label = "Địa Chỉ",
+                        value = userData?.location ?: "Chưa cập nhật",
+                        onEditClick = {
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                lastClickTime = currentTime
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    syncDataForEdit(EditSection.LOCATION)
+                                    editSection = EditSection.LOCATION
+                                    showBottomSheet = true
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    ),
+                    ProfileInfoItem(
+                        icon = if (userData?.gender == "Nam") Icons.Outlined.Male else Icons.Outlined.Female,
+                        label = "Giới Tính",
+                        value = userData?.gender ?: "Chưa cập nhật",
+                        onEditClick = {
+                            saveStatus = "Không thể đổi giới tính"
+                        }
+                    ),
+                    ProfileInfoItem(
+                        icon = Icons.Outlined.Favorite,
+                        label = "Mối Quan Hệ Tìm Kiếm",
+                        value = userData?.lookingFor ?: "Chưa cập nhật",
+                        onEditClick = {
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                lastClickTime = currentTime
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    syncDataForEdit(EditSection.LOOKING_FOR)
+                                    editSection = EditSection.LOOKING_FOR
+                                    showBottomSheet = true
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    )
                 )
+            )
+
+            // Sở thích
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Stars,
+                                contentDescription = "Sở thích",
+                                tint = Color(0xFF6A11CB),
+                                modifier = Modifier.size(24.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "Sở Thích",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1F2937)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
+                                    lastClickTime = currentTime
+                                    coroutineScope.launch {
+                                        isLoading = true
+                                        syncDataForEdit(EditSection.INTEREST)
+                                        editSection = EditSection.INTEREST
+                                        showBottomSheet = true
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
+                                    )
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Chỉnh sửa",
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    userData?.let { data ->
+                        if (data.interests.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                data.interests.chunked(3).forEach { chunk ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        chunk.forEach { hobby ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        Brush.linearGradient(
+                                                            colors = listOf(
+                                                                Color(0xFF6A11CB),
+                                                                Color(0xFF2575FC)
+                                                            )
+                                                        )
+                                                    )
+                                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = hobby,
+                                                    color = Color.White,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                        // Fill remaining space if chunk is smaller than 3
+                                        repeat(3 - chunk.size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(80.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF3F4F6)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.",
+                                    color = Color(0xFF9CA3AF),
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    } ?: run {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF3F4F6)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.",
+                                color = Color(0xFF9CA3AF),
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+
+        // Snackbar thông báo
+        AnimatedVisibility(
+            visible = saveStatus != null,
+            enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)),
+            exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1F2937)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = saveStatus ?: "",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    TextButton(
+                        onClick = { saveStatus = null },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFF6A11CB)
+                        )
+                    ) {
+                        Text(
+                            "Đóng",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
 
-        ProfileCard(
-            title = "Mối Quan Hệ Tìm Kiếm",
-            content = userData?.lookingFor ?: "Chưa cập nhật",
-            onEditClick = {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime > 500 && !isLoading && !isSaving) {
-                    lastClickTime = currentTime
-                    coroutineScope.launch {
-                        isLoading = true
-                        syncDataForEdit(EditSection.LOOKING_FOR)
-                        editSection = EditSection.LOOKING_FOR
-                        showBottomSheet = true
-                        isLoading = false
-                    }
-                }
+        // Hiển thị màn hình loading
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .blur(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Color(0xFF6A11CB),
+                    modifier = Modifier.size(48.dp)
+                )
             }
-        )
-
-        Spacer(modifier = Modifier.height(100.dp))
+        }
     }
 
+    // BottomSheet (giữ nguyên logic xử lý)
     EditBottomSheet(
         isVisible = showBottomSheet,
         onDismiss = {
@@ -499,6 +786,8 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                         field = "location",
                                         value = userInputViewModel.location.value,
                                         onSuccess = {
+                                            authViewModel.fetchUserData(currentUserId)
+                                            saveStatus = "Lưu thành công"
                                             authViewModel.fetchUserData(currentUserId)
                                             saveStatus = "Lưu thành công"
                                         },
@@ -679,29 +968,6 @@ fun ProfileScreenU(navController: NavController, context: Context) {
         }
     }
 
-    if (saveStatus != null) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(WindowInsets.systemBars.asPaddingValues())
-        ) {
-            Snackbar(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF212121)),
-                action = {
-                    TextButton(onClick = { saveStatus = null }) {
-                        Text("OK", color = Color.White)
-                    }
-                }
-            ) {
-                Text(saveStatus ?: "", color = Color.White)
-            }
-        }
-
-    }
-
     DisposableEffect(Unit) {
         onDispose {
             val imageLoader = ImageLoader(context)
@@ -710,64 +976,124 @@ fun ProfileScreenU(navController: NavController, context: Context) {
     }
 }
 
+// Thành phần mới cho mục thông tin cá nhân
 @Composable
-fun ProfileCard(
+fun ProfileInfoSection(
     title: String,
-    content: String? = null,
-    onEditClick: () -> Unit,
-    additionalContent: (@Composable () -> Unit)? = null
+    items: List<ProfileInfoItem>
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(4.dp, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Row(
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1F2937),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
-                )
-                IconButton(
-                    onClick = onEditClick,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFFFF4081), Color(0xFFF50057))
-                            )
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = "Chỉnh sửa",
-                        tint = Color.White
-                    )
+                items.forEach { item ->
+                    ProfileInfoRow(item)
                 }
             }
-            if (content != null) {
-                Text(
-                    text = content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF424242),
-                    modifier = Modifier.padding(top = 8.dp)
+        }
+    }
+}
+
+// Dữ liệu cho mỗi mục thông tin
+data class ProfileInfoItem(
+    val icon: ImageVector,
+    val label: String,
+    val value: String,
+    val onEditClick: () -> Unit
+)
+
+// Hàng thông tin cá nhân
+@Composable
+fun ProfileInfoRow(item: ProfileInfoItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icon
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF6A11CB).copy(alpha = 0.2f),
+                            Color(0xFF2575FC).copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.label,
+                tint = Color(0xFF6A11CB),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Thông tin
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = item.label,
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280)
+            )
+
+            Text(
+                text = item.value,
+                fontSize = 16.sp,
+                color = Color(0xFF1F2937),
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        // Nút chỉnh sửa
+        IconButton(
+            onClick = item.onEditClick,
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
+                    )
                 )
-            }
-            additionalContent?.invoke()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = "Chỉnh sửa ${item.label}",
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }

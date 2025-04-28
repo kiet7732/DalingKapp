@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -35,11 +39,7 @@
             android:exported="false"
             android:label="@string/title_activity_location_ui"
             android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".components.WheelPicker"
-            android:exported="false"
-            android:label="@string/title_activity_wheel_picker"
-            android:theme="@style/Theme.DalingK" />
+
         <activity
             android:name=".components.detailUser.DisplayPhotos"
             android:exported="false"
@@ -71,108 +71,18 @@
             android:label="@string/title_activity_avatar_detail_screen"
             android:theme="@style/Theme.DalingK" />
         <activity
-            android:name=".components.LocationScreen"
-            android:exported="false"
-            android:label="@string/title_activity_location_screen"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name="components.Loading"
-            android:exported="false"
-            android:label="@string/title_activity_loading"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".components.detailUser.ProfileScreen"
-            android:exported="false"
-            android:label="@string/title_activity_profile_screen"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".DataStoreManager"
-            android:exported="false" />
-        <activity
             android:name=".auth.Register"
             android:exported="false"
             android:label="@string/title_activity_register"
             android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name="data.repository.AuthViewModel"
-            android:exported="false"
-            android:label="@string/title_activity_auth_view_model"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".MainActivity2"
-            android:exported="false"
-            android:label="@string/title_activity_main2"
-            android:theme="@style/Theme.DalingK" />
+
+
         <activity
             android:name=".components.TopBar"
             android:exported="false"
             android:label="@string/title_activity_top_bar"
             android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".HomeMatch"
-            android:exported="false"
-            android:label="@string/title_activity_home_match"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name="components.MatchActionButtonComponent"
-            android:exported="false"
-            android:label="@string/title_activity_match_action_button_component"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name="components.ProfileCardComponent"
-            android:exported="false"
-            android:label="@string/title_activity_profile_card_component"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".ProfileCard"
-            android:exported="false"
-            android:label="@string/title_activity_profile_card"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".PhotoSwipeScreen"
-            android:exported="false"
-            android:label="@string/title_activity_photo_swipe_screen"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".MainLayOut"
-            android:exported="false"
-            android:label="@string/title_activity_main_lay_out"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".UpPhoto"
-            android:exported="false"
-            android:label="@string/title_activity_up_photo"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".InterestUI"
-            android:exported="false"
-            android:label="@string/title_activity_interest_ui"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".LookingFor"
-            android:exported="false"
-            android:label="@string/title_activity_looking_for"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".GenderUi"
-            android:exported="false"
-            android:label="@string/title_activity_gender_ui"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".InputDetailU"
-            android:exported="false"
-            android:label="@string/title_activity_input_detail_u"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".UserIntroForm"
-            android:exported="false"
-            android:label="@string/title_activity_user_intro_form"
-            android:theme="@style/Theme.DalingK" />
-        <activity
-            android:name=".LogoStart"
-            android:exported="false"
-            android:label="@string/title_activity_logo_start"
-            android:theme="@style/Theme.DalingK" />
+
         <activity
             android:name=".screens.IntroUI"
             android:exported="false"
@@ -199,6 +109,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name="data.chat.services.MessageSyncService"
+            android:enabled="true"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

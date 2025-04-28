@@ -1,6 +1,7 @@
 package data.chat.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
@@ -9,13 +10,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.example.dalingk.R
+import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import data.chat.AppChatDatabase
 import data.chat.CachedChatListItem
 import data.chat.CachedMessage
+import data.chat.services.MessageSyncService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,6 +101,9 @@ class ChatListViewModel(
                 if (isNetworkAvailable) {
                     syncMessageToFirebaseWithRetry(message)
                 }
+                // Khởi động Service để đồng bộ
+                val intent = Intent(context, MessageSyncService::class.java)
+                context.startService(intent)
             }
         }
     }
@@ -155,39 +162,85 @@ class ChatListViewModel(
     private var messagesListener: ValueEventListener? = null
 
     //Thêm listener cho cập nhật thời gian thực:
-    fun startMessagesListener(matchId: String) {
+    fun startMessagesListener(matchId: String): Pair<ChildEventListener, DatabaseReference> {
         val messagesRef = database.getReference("matches/$matchId/chat")
-        messagesRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 viewModelScope.launch {
-                    val newMessages = mutableListOf<CachedMessage>()
-                    snapshot.children.forEach { messageSnapshot ->
-                        val messageId = messageSnapshot.key ?: return@forEach
-                        val senderId = messageSnapshot.child("senderId").value as? String ?: return@forEach
-                        val text = messageSnapshot.child("text").value as? String ?: return@forEach
-                        val timestamp = messageSnapshot.child("timestamp").value as? Long ?: return@forEach
-
-                        val message = CachedMessage(
-                            messageId = messageId,
-                            matchId = matchId,
-                            senderId = senderId,
-                            text = text,
-                            timestamp = timestamp,
-                            isSynced = true,
-                            ownerId = currentUserId ?: ""
-                        )
-                        newMessages.add(message)
-                        chatDao.insertMessage(message)
+                    val messageId = snapshot.key ?: run {
+                        Log.e("ChatListViewModel", "Message snapshot key is null")
+                        return@launch
                     }
-                    _messages.value = (_messages.value + newMessages).distinctBy { it.messageId }.sortedBy { it.timestamp }
+                    val senderId = snapshot.child("senderId").value as? String ?: run {
+                        Log.e("ChatListViewModel", "SenderId is null for message: $messageId")
+                        return@launch
+                    }
+                    val text = snapshot.child("text").value as? String ?: run {
+                        Log.e("ChatListViewModel", "Text is null for message: $messageId")
+                        return@launch
+                    }
+                    val timestamp = snapshot.child("timestamp").value as? Long ?: run {
+                        Log.e("ChatListViewModel", "Timestamp is null for message: $messageId")
+                        return@launch
+                    }
+
+                    Log.d("ChatListViewModel", "New message received: $messageId from $senderId")
+
+                    val message = CachedMessage(
+                        messageId = messageId,
+                        matchId = matchId,
+                        senderId = senderId,
+                        text = text,
+                        timestamp = timestamp,
+                        isSynced = true,
+                        ownerId = currentUserId ?: "",
+                        isNotified = false
+                    )
+
+                    chatDao.insertMessage(message)
+                    Log.d("ChatListViewModel", "Message $messageId saved to Room")
+
+                    val currentMessages = _messages.value.toMutableList()
+                    currentMessages.add(message)
+                    _messages.value = currentMessages.distinctBy { it.messageId }.sortedBy { it.timestamp }
+                    Log.d("ChatListViewModel", "Updated messages list, size: ${_messages.value.size}")
+
+                    val shouldNotify = senderId != currentUserId &&
+                            !message.isNotified &&
+                            (!util.AppState.isAppInForeground() || !util.AppState.isChatScreenOpen(matchId))
+                    Log.d(
+                        "ChatListViewModel",
+                        "Message $messageId: shouldNotify=$shouldNotify, " +
+                                "isNotified=${message.isNotified}, " +
+                                "isFromCurrentUser=${senderId == currentUserId}, " +
+                                "isAppInForeground=${util.AppState.isAppInForeground()}, " +
+                                "isChatScreenOpen=${util.AppState.isChatScreenOpen(matchId)}"
+                    )
+
+                    if (shouldNotify) {
+                        val intent = Intent(context, MessageSyncService::class.java).apply {
+                            putExtra("NOTIFICATION_MESSAGE", message)
+                        }
+                        context.startService(intent)
+                        chatDao.markMessageAsNotified(messageId)
+                        Log.d("ChatListViewModel", "Notification intent sent for message: $messageId")
+                    }
                 }
             }
 
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onCancelled(error: DatabaseError) {
                 Log.e("ChatListViewModel", "Messages listener cancelled: ${error.message}")
             }
-        })
+        }
+
+        messagesRef.addChildEventListener(listener)
+        Log.d("ChatListViewModel", "Started messages listener for matchId: $matchId")
+        return Pair(listener, messagesRef)
     }
+
 
     override fun onCleared() {
         messagesListener?.let { database.getReference().removeEventListener(it) }

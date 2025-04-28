@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+
 @Dao
 interface ChatDao {
     @Query("SELECT * FROM chat_list WHERE ownerId = :ownerId ORDER BY timestamp DESC")
@@ -31,11 +32,15 @@ interface ChatDao {
     @Query("SELECT * FROM messages WHERE matchId = :matchId AND ownerId = :ownerId ORDER BY timestamp ASC LIMIT :limit OFFSET :offset")
     suspend fun getMessagesByMatchIdWithPagination(matchId: String, ownerId: String, limit: Int, offset: Int): List<CachedMessage>
 
-    // Thêm hàm xóa dữ liệu từ bảng chat_list
+    @Query("UPDATE messages SET isNotified = 1 WHERE messageId = :messageId")
+    suspend fun markMessageAsNotified(messageId: String)
+
+    @Query("UPDATE messages SET isNotified = 1 WHERE isNotified = 0")
+    suspend fun markAllMessagesAsNotified()
+
     @Query("DELETE FROM chat_list")
     suspend fun clearChatList()
 
-    // Thêm hàm xóa dữ liệu từ bảng messages
     @Query("DELETE FROM messages")
     suspend fun clearMessages()
 }

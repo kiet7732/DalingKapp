@@ -1,11 +1,19 @@
 package com.example.dalingk.navigation
 
+import android.Manifest
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -24,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import com.example.dalingk.ui.theme.DalingKTheme
@@ -58,7 +68,7 @@ import com.example.dalingk.navigation.Routes.ForgotPassword
 import data.model.CloudinaryHelper
 import data.repository.AuthViewModel
 import data.viewmodel.UserInputViewModel
-
+import androidx.core.app.NotificationCompat
 //import components.profiles
 
 class MainActivity : ComponentActivity() {
@@ -66,21 +76,42 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Đăng ký launcher để yêu cầu quyền thông báo
+        val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                // Hiển thị thông báo khi quyền bị từ chối
+                Toast.makeText(this, "Quyền thông báo bị từ chối", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Yêu cầu quyền POST_NOTIFICATIONS trên Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         setContent {
             DalingKTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                )
-                {
-                    //khoitai firebase
+                ) {
+                    // Khởi tạo Firebase
                     FirebaseApp.initializeApp(this)
                     val firebaseAppCheck = FirebaseAppCheck.getInstance()
                     firebaseAppCheck.installAppCheckProviderFactory(
                         PlayIntegrityAppCheckProviderFactory.getInstance()
                     )
-                    //khoitai
+
+                    // Khởi tạo Cloudinary
                     CloudinaryHelper.initialize(this)
+
+                    // Điều hướng ứng dụng
                     AppNavigation()
                 }
             }
@@ -89,6 +120,7 @@ class MainActivity : ComponentActivity() {
 }
 
 // Set up navigation in your NavHost:
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -98,12 +130,35 @@ fun AppNavigation() {
     var startDestination by remember { mutableStateOf(Routes.TrailerScreen) }
     var isChecking by remember { mutableStateOf(true) }
 
+    // Sử dụng NetworkCallback để lắng nghe thay đổi mạng thay vì dùng BroadcastReceiver
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                Toast.makeText(context, "Đã kết nối mạng", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onLost(network: Network) {
+                Toast.makeText(context, "Mất kết nối mạng", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+
+        onDispose {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        }
+    }
+
     LaunchedEffect(Unit) {
         Log.d("AppNavigation", "Bắt đầu kiểm tra trạng thái người dùng")
         authViewModel.checkCurrentUserIdExists(
             onResult = { isLoggedIn ->
                 if (isLoggedIn) {
-                    // Nếu có trong Authentication, kiểm tra tiếp Database
                     authViewModel.checkCurrentUserDataExists(
                         onResult = { route ->
                             startDestination = route
@@ -117,7 +172,6 @@ fun AppNavigation() {
                         }
                     )
                 } else {
-                    // Không có trong Authentication, kiểm tra Database
                     authViewModel.checkCurrentUserDataExists(
                         onResult = { route ->
                             startDestination = route
@@ -140,7 +194,6 @@ fun AppNavigation() {
             }
         )
     }
-
     if (!isChecking) {
         Column(
             modifier = Modifier
@@ -151,11 +204,9 @@ fun AppNavigation() {
                 composable(Routes.TrailerScreen) {
                     LoginScreen(navController = navController, currentScreen = "1", context)
                 }
-
                 composable(Routes.InputDetail) {
                     ArrowScreen(navController = navController, context, viewModel, authViewModel)
                 }
-
                 composable(Routes.Register) {
                     RegisterScreen(
                         viewModel = authViewModel,
@@ -165,17 +216,15 @@ fun AppNavigation() {
                         context
                     )
                 }
-
                 composable(Routes.InputLogin) {
                     PhoneNumberInput(
                         viewModel = authViewModel,
                         navController = navController,
                         onNext = { navController.navigate(Routes.Register) },
-                        onNextSs2 =  { navController.navigate(Routes.ForgotPassword) },
+                        onNextSs2 = { navController.navigate(Routes.ForgotPassword) },
                         context
                     )
                 }
-
                 composable(Routes.ForgotPassword) {
                     ForgotPassword(
                         viewModel = authViewModel,
@@ -184,7 +233,6 @@ fun AppNavigation() {
                         context
                     )
                 }
-
                 composable(Routes.MainMatch) {
                     MainScreen(navController = navController, context, authViewModel)
                 }
@@ -215,7 +263,6 @@ fun AppNavigation() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             val transition = rememberInfiniteTransition()
             val yOffset by transition.animateFloat(
                 initialValue = 0f,
@@ -225,7 +272,6 @@ fun AppNavigation() {
                     repeatMode = RepeatMode.Reverse
                 )
             )
-
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (i in 0..2) {
                     Box(
@@ -236,7 +282,6 @@ fun AppNavigation() {
                     )
                 }
             }
-
         }
     }
 }

@@ -163,7 +163,7 @@ fun ProfileCard(userData: UserData, modifier: Modifier = Modifier) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .padding(4.dp),
+                        .padding(4.dp, bottom = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
