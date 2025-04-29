@@ -42,6 +42,9 @@ class ChatListViewModel(
     private val _messages = MutableStateFlow<List<CachedMessage>>(emptyList())
     val messages: StateFlow<List<CachedMessage>> = _messages.asStateFlow()
 
+    private val _notificationMessage = MutableStateFlow<String?>(null)
+    val notificationMessage: StateFlow<String?> = _notificationMessage.asStateFlow()
+
     private var currentUserId: String? = null
     private var isNetworkAvailable = true
 
@@ -168,23 +171,25 @@ class ChatListViewModel(
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 viewModelScope.launch {
                     val messageId = snapshot.key ?: run {
-                        Log.e("ChatListViewModel", "Message snapshot key is null")
-                        return@launch
+                       return@launch
                     }
                     val senderId = snapshot.child("senderId").value as? String ?: run {
-                        Log.e("ChatListViewModel", "SenderId is null for message: $messageId")
-                        return@launch
+                       return@launch
                     }
                     val text = snapshot.child("text").value as? String ?: run {
-                        Log.e("ChatListViewModel", "Text is null for message: $messageId")
                         return@launch
                     }
                     val timestamp = snapshot.child("timestamp").value as? Long ?: run {
-                        Log.e("ChatListViewModel", "Timestamp is null for message: $messageId")
+                       return@launch
+                    }
+
+                    // Bỏ qua tin nhắn cũ
+                    val currentTime = System.currentTimeMillis()
+                    if (timestamp < currentTime - 10_000) {
+                      chatDao.markMessageAsNotified(messageId)
                         return@launch
                     }
 
-                    Log.d("ChatListViewModel", "New message received: $messageId from $senderId")
 
                     val message = CachedMessage(
                         messageId = messageId,
@@ -197,33 +202,40 @@ class ChatListViewModel(
                         isNotified = false
                     )
 
+                    // Lưu tin nhắn vào Room
                     chatDao.insertMessage(message)
-                    Log.d("ChatListViewModel", "Message $messageId saved to Room")
 
+                    // Cập nhật danh sách tin nhắn
                     val currentMessages = _messages.value.toMutableList()
                     currentMessages.add(message)
                     _messages.value = currentMessages.distinctBy { it.messageId }.sortedBy { it.timestamp }
-                    Log.d("ChatListViewModel", "Updated messages list, size: ${_messages.value.size}")
 
+                    // Kiểm tra điều kiện gửi thông báo
                     val shouldNotify = senderId != currentUserId &&
                             !message.isNotified &&
                             (!util.AppState.isAppInForeground() || !util.AppState.isChatScreenOpen(matchId))
-                    Log.d(
-                        "ChatListViewModel",
-                        "Message $messageId: shouldNotify=$shouldNotify, " +
-                                "isNotified=${message.isNotified}, " +
-                                "isFromCurrentUser=${senderId == currentUserId}, " +
-                                "isAppInForeground=${util.AppState.isAppInForeground()}, " +
-                                "isChatScreenOpen=${util.AppState.isChatScreenOpen(matchId)}"
-                    )
+
+                    val isAppInForeground = util.AppState.isAppInForeground()
 
                     if (shouldNotify) {
-                        val intent = Intent(context, MessageSyncService::class.java).apply {
-                            putExtra("NOTIFICATION_MESSAGE", message)
+                        if (isAppInForeground) {
+//                            // Hiển thị Snackbar khi ứng dụng ở foreground
+                            val userData = getUserData(senderId, context)
+                            _notificationMessage.value = "${userData.name}: $text"
+//                            chatDao.markMessageAsNotified(messageId)
+                            Log.d("ChatListViewModel", "Snackbar notification sent for message: $messageId")
+                        } else {
+                            // Gửi thông báo hệ thống khi ứng dụng chạy nền
+                            val intent = Intent(context, MessageSyncService::class.java).apply {
+                                putExtra("NOTIFICATION_MESSAGE", message)
+                            }
+                            context.startService(intent)
+                            chatDao.markMessageAsNotified(messageId)
+                            Log.d("ChatListViewModel", "System notification intent sent for message: $messageId")
                         }
-                        context.startService(intent)
+                    } else if (util.AppState.isChatScreenOpen(matchId)) {
                         chatDao.markMessageAsNotified(messageId)
-                        Log.d("ChatListViewModel", "Notification intent sent for message: $messageId")
+                        Log.d("ChatListViewModel", "Message $messageId marked as notified (chat screen open)")
                     }
                 }
             }
@@ -237,7 +249,6 @@ class ChatListViewModel(
         }
 
         messagesRef.addChildEventListener(listener)
-        Log.d("ChatListViewModel", "Started messages listener for matchId: $matchId")
         return Pair(listener, messagesRef)
     }
 

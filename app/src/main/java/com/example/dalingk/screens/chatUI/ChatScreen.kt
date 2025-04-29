@@ -75,6 +75,7 @@ import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DatabaseReference
+import data.chat.AppChatDatabase
 import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
@@ -119,12 +120,18 @@ fun ChatScreen(
     val currentUserId = UserPreferences.getUserId(context) ?: return
     val coroutineScope = rememberCoroutineScope()
 
-    // Trạng thái danh sách tin nhắn
+    // Đánh dấu tất cả tin nhắn trong matchId là đã thông báo khi mở ChatScreen
     LaunchedEffect(matchId) {
-        viewModel.loadMessages(matchId)
+        coroutineScope.launch {
+            // Đánh dấu tất cả tin nhắn trong matchId hiện tại là đã thông báo
+            AppChatDatabase.getDatabase(context).chatDao().markAllMessagesAsNotified(matchId)
+            viewModel.loadMessages(matchId)
+            util.AppState.setCurrentChatScreen(matchId) // Cập nhật trạng thái màn hình chat
+        }
     }
-    val messages by viewModel.messages.collectAsState()
 
+    // Trạng thái danh sách tin nhắn
+    val messages by viewModel.messages.collectAsState()
 
     // Lấy thông tin người dùng đối phương
     var userData by remember { mutableStateOf<UserData?>(null) }
@@ -159,7 +166,6 @@ fun ChatScreen(
     }
 
     LaunchedEffect(matchId) {
-        viewModel.loadMessages(matchId)
         viewModel.startMessagesListener(matchId)
     }
 
@@ -364,6 +370,13 @@ fun ChatScreen(
                     )
                 }
             }
+        }
+    }
+
+    // Đặt lại trạng thái khi rời khỏi màn hình chat
+    DisposableEffect(matchId) {
+        onDispose {
+            util.AppState.setCurrentChatScreen(null)
         }
     }
 }

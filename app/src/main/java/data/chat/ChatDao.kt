@@ -35,8 +35,8 @@ interface ChatDao {
     @Query("UPDATE messages SET isNotified = 1 WHERE messageId = :messageId")
     suspend fun markMessageAsNotified(messageId: String)
 
-    @Query("UPDATE messages SET isNotified = 1 WHERE isNotified = 0")
-    suspend fun markAllMessagesAsNotified()
+    @Query("UPDATE messages SET isNotified = 1 WHERE matchId = :matchId AND isNotified = 0")
+    suspend fun markAllMessagesAsNotified(matchId: String)
 
     @Query("DELETE FROM chat_list")
     suspend fun clearChatList()

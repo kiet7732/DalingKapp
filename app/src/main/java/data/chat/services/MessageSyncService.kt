@@ -43,9 +43,16 @@ class MessageSyncService : Service() {
                 scope.launch {
                     val senderId = message.senderId
                     val userData = getUserData(senderId, this@MessageSyncService)
-                    sendNotification(message, userData)
-                    chatDao.markMessageAsNotified(message.messageId)
-                    android.util.Log.d("MessageSyncService", "Direct notification sent for message: ${message.messageId}")
+                    // Kiểm tra xem tin nhắn có phải là mới nhất (gần với thời gian hiện tại)
+                    val currentTime = System.currentTimeMillis()
+                    if (message.timestamp >= currentTime - 10_000) {
+                        sendNotification(message, userData)
+                        chatDao.markMessageAsNotified(message.messageId)
+                        android.util.Log.d("MessageSyncService", "Direct notification sent for message: ${message.messageId}")
+                    } else {
+                        android.util.Log.d("MessageSyncService", "Ignoring old message in notification: ${message.messageId}")
+                        chatDao.markMessageAsNotified(message.messageId)
+                    }
                 }
             }
         } ?: run {
@@ -67,7 +74,7 @@ class MessageSyncService : Service() {
 
         android.util.Log.d("MessageSyncService", "Starting syncMessages for ownerId: $ownerId")
         val unsyncedMessages = chatDao.getMessagesByMatchIdWithPagination(ownerId, ownerId, 100, 0)
-            .filter { !it.isSynced }
+            .filter { !it.isSynced && !it.isNotified && it.senderId != ownerId }
         android.util.Log.d("MessageSyncService", "Found ${unsyncedMessages.size} unsynced messages")
 
         unsyncedMessages.forEach { message ->
@@ -98,10 +105,17 @@ class MessageSyncService : Service() {
                 )
 
                 if (shouldNotify) {
-                    val userData = getUserData(message.senderId, this@MessageSyncService)
-                    sendNotification(message, userData)
-                    chatDao.markMessageAsNotified(message.messageId)
-                    android.util.Log.d("MessageSyncService", "Notification sent for message: ${message.messageId}")
+                    // Kiểm tra xem tin nhắn có phải là mới nhất
+                    val currentTime = System.currentTimeMillis()
+                    if (message.timestamp >= currentTime - 10_000) {
+                        val userData = getUserData(message.senderId, this@MessageSyncService)
+                        sendNotification(message, userData)
+                        chatDao.markMessageAsNotified(message.messageId)
+                        android.util.Log.d("MessageSyncService", "Notification sent for message: ${message.messageId}")
+                    } else {
+                        chatDao.markMessageAsNotified(message.messageId)
+                        android.util.Log.d("MessageSyncService", "Ignoring old message in sync: ${message.messageId}")
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("MessageSyncService", "Error syncing message ${message.messageId}: ${e.message}")
@@ -134,6 +148,7 @@ class MessageSyncService : Service() {
     private suspend fun sendNotification(message: CachedMessage, userData: UserData) {
         val intent = Intent(this, ChatScreen::class.java).apply {
             putExtra("matchId", message.matchId)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             this,

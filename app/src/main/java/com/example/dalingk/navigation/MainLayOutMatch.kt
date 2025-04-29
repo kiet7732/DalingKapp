@@ -43,9 +43,11 @@ import com.example.dalingk.components.TopBarU
 import com.example.dalingk.screens.AvatarDetail
 import com.example.dalingk.screens.chatUI.ChatListUI
 import com.example.dalingk.screens.HomeMatch
+import data.chat.viewmodel.ChatListViewModel
 import data.repository.AuthViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import util.AppState
 
 class MainLayOutMatch : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,11 +65,21 @@ class MainLayOutMatch : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        AppState.setAppForeground(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        AppState.setAppForeground(false)
+    }
 }
+
 
 @Composable
 fun MainScreen(navController: NavController, context: Context, viewModel: AuthViewModel) {
-    // Nhận selectedIndex từ điều hướng hoặc mặc định là 0
     var selectedIndex by remember {
         mutableStateOf(
             navController.previousBackStackEntry?.savedStateHandle?.get<Int>(Routes.DetailU) ?: 0
@@ -80,12 +92,15 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
 
     val profiles by viewModel.cachedProfiles.collectAsState(initial = emptyList())
 
+    val chatListViewModel = remember { ChatListViewModel(context) }
+    val notificationMessage by chatListViewModel.notificationMessage.collectAsState()
+
     LaunchedEffect(selectedIndex) {
         if (userId != null) {
             withContext(Dispatchers.IO) {
-                viewModel.fetchUserData(userId) // Lấy dữ liệu người dùng hiện tại
+                viewModel.fetchUserData(userId)
                 if (selectedIndex <= 2) {
-                    viewModel.loadNewProfiles(context) // Chỉ tải 20 profile khi cần
+                    viewModel.loadNewProfiles(context)
                 }
             }
         } else {
@@ -103,7 +118,7 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
     }
 
     Scaffold(
-        topBar = { TopBarU() },
+        topBar = { TopBarU(notificationMessage = notificationMessage) },
         bottomBar = {
             NavMLayout(
                 selectedIndex = selectedIndex,
