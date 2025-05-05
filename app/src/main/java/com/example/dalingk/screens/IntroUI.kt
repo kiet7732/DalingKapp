@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -136,7 +137,7 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null, con
         // Sign Up Link
         Row(
         ) {
-            Text(text = "Don’t have an account?", color = Color.Gray)
+            Text(text = stringResource(id = R.string.textintro_1), color = Color.Gray)
             Spacer(modifier = Modifier.width(4.dp))
 
             Button(
@@ -154,7 +155,7 @@ fun LoginScreen(navController: NavController, currentScreen: String? = null, con
                     .offset(y = -13.dp)
             ) {
                 Text(
-                    text = "Register",
+                    text = stringResource(id = R.string.textintro_2),
                     style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
                     color = Color(0xFFFF6473),
                     fontWeight = FontWeight.Bold,

@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.dalingk.R
 
 class Register : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,7 +87,7 @@ fun RegisterScreen(
         ) {
             // Tiêu đề
             Text(
-                text = "Create Your Account",
+                text = stringResource(id = R.string.textintro_12),
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -177,7 +179,7 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
                 Text(
-                    text = "Sign Up",
+                    text = stringResource(id = R.string.textintro_13),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     style = TextStyle(fontSize = 18.sp)
@@ -185,7 +187,7 @@ fun RegisterScreen(
             }
 
             Text(
-                text = "Đăng nhập",
+                text = stringResource(id = R.string.textintro_14),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFE506B), // Màu đỏ

@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.dalingk.R
 import com.example.dalingk.auth.ui.theme.DalingKTheme
 import com.google.firebase.auth.FirebaseAuth
 import data.repository.AuthViewModel
@@ -90,7 +92,7 @@ fun ForgotPassword(
         ) {
             // Title
             Text(
-                text = "Reset Your Password",
+                text = stringResource(id = R.string.textintro_15),
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 style = TextStyle(
@@ -103,7 +105,7 @@ fun ForgotPassword(
 
             // Instruction text
             Text(
-                text = "Enter your email address and we'll send you a link to reset your password",
+                text = stringResource(id = R.string.textintro_16),
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
                 style = TextStyle(fontSize = 16.sp),
@@ -181,7 +183,7 @@ fun ForgotPassword(
                 modifier = Modifier.fillMaxWidth(0.8f)
             ) {
                 Text(
-                    text = if (isLoading) "Sending..." else "Send Reset Link",
+                    text = if (isLoading) stringResource(id = R.string.textintro_17) else stringResource(id = R.string.textintro_18),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     style = TextStyle(fontSize = 18.sp)
@@ -192,7 +194,7 @@ fun ForgotPassword(
 
             // Back to login
             Text(
-                text = "Back to Login",
+                text = stringResource(id = R.string.textintro_19),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFE506B),

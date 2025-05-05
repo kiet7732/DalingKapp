@@ -2,6 +2,10 @@ package com.example.dalingk.components.detailUser
 
 import android.content.Context
 import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -31,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,8 +45,10 @@ import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import com.example.dalingk.FullScreenLoading
+import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
 import com.example.dalingk.components.EditBottomSheet
+import com.example.dalingk.navigation.GreetingPreview2
 import com.example.dalingk.ui.theme.DalingKTheme
 import com.google.firebase.database.FirebaseDatabase
 import data.repository.AuthViewModel
@@ -50,7 +57,36 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import util.AppState
 import util.FileUtil
+
+class ProfileScreen : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            DalingKTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                )
+                {
+
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AppState.setAppForeground(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        AppState.setAppForeground(false)
+    }
+}
 
 enum class EditSection {
     INTRO_FORM, GENDER, LOOKING_FOR, INTEREST, UPPHOTO, LOCATION
@@ -70,6 +106,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
     val coroutineScope = rememberCoroutineScope()
     var lastClickTime by remember { mutableStateOf(0L) }
     var selectedPhotoIndex by remember { mutableStateOf(0) }
+
 
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty() && userData == null) {
@@ -197,7 +234,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
-                    text = "Hồ Sơ Của Bạn",
+                    text = stringResource(id = R.string.textdetailuser_1),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -364,7 +401,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Bộ Sưu Tập Ảnh",
+                        text = stringResource(id = R.string.textdetailuser_2),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1F2937)
@@ -374,12 +411,12 @@ fun ProfileScreenU(navController: NavController, context: Context) {
 
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
                         items(5) { index ->
-                            val actualIndex = index + 1 // Bắt đầu từ ảnh thứ 2 (index 1)
-                            val imageUrl =
-                                if (imageUrls.size > actualIndex) imageUrls[actualIndex] else ""
+                            val actualIndex = index + 1
+                            val imageUrl = if (imageUrls.size > actualIndex) imageUrls[actualIndex] else ""
 
                             Box(
                                 modifier = Modifier
@@ -436,7 +473,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                             Spacer(modifier = Modifier.height(4.dp))
 
                                             Text(
-                                                text = "Thêm ảnh",
+                                                text = stringResource(id = R.string.textdetailuser_3),
                                                 color = Color(0xFF9CA3AF),
                                                 fontSize = 12.sp,
                                                 textAlign = TextAlign.Center
@@ -452,11 +489,11 @@ fun ProfileScreenU(navController: NavController, context: Context) {
 
             // Thông tin cá nhân
             ProfileInfoSection(
-                title = "Thông Tin Cá Nhân",
+                title = stringResource(id = R.string.textdetailuser_4),
                 items = listOf(
                     ProfileInfoItem(
                         icon = Icons.Outlined.Person,
-                        label = "Họ và Tên",
+                        label = stringResource(id = R.string.textdetailuser_5),
                         value = userData?.fullName ?: "Chưa cập nhật",
                         onEditClick = {
                             val currentTime = System.currentTimeMillis()
@@ -474,7 +511,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                     ),
                     ProfileInfoItem(
                         icon = Icons.Outlined.LocationOn,
-                        label = "Địa Chỉ",
+                        label = stringResource(id = R.string.textdetailuser_6),
                         value = userData?.location ?: "Chưa cập nhật",
                         onEditClick = {
                             val currentTime = System.currentTimeMillis()
@@ -492,15 +529,15 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                     ),
                     ProfileInfoItem(
                         icon = if (userData?.gender == "Nam") Icons.Outlined.Male else Icons.Outlined.Female,
-                        label = "Giới Tính",
+                        label = stringResource(id = R.string.textdetailuser_8),
                         value = userData?.gender ?: "Chưa cập nhật",
                         onEditClick = {
-                            saveStatus = "Không thể đổi giới tính"
+                            saveStatus = ""
                         }
                     ),
                     ProfileInfoItem(
                         icon = Icons.Outlined.Favorite,
-                        label = "Mối Quan Hệ Tìm Kiếm",
+                        label = stringResource(id = R.string.textdetailuser_9),
                         value = userData?.lookingFor ?: "Chưa cập nhật",
                         onEditClick = {
                             val currentTime = System.currentTimeMillis()
@@ -549,7 +586,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                             Spacer(modifier = Modifier.width(8.dp))
 
                             Text(
-                                text = "Sở Thích",
+                                text = stringResource(id = R.string.textdetailuser_10),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1F2937)
@@ -571,18 +608,19 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                 }
                             },
                             modifier = Modifier
-                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(
                                     Brush.linearGradient(
                                         colors = listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
                                     )
                                 )
+                                .size(28.dp) // Kích thước nền nhỏ lại
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Edit,
-                                contentDescription = "Chỉnh sửa",
-                                tint = Color.White
+                                contentDescription = "Chỉnh sửa ",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp) // Icon vẫn to hơn
                             )
                         }
                     }
@@ -642,7 +680,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.",
+                                    text = stringResource(id = R.string.textdetailuser_12),
                                     color = Color(0xFF9CA3AF),
                                     fontSize = 14.sp,
                                     textAlign = TextAlign.Center,
@@ -660,7 +698,7 @@ fun ProfileScreenU(navController: NavController, context: Context) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.",
+                                text = stringResource(id = R.string.textdetailuser_12),
                                 color = Color(0xFF9CA3AF),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
@@ -1080,20 +1118,21 @@ fun ProfileInfoRow(item: ProfileInfoItem) {
         IconButton(
             onClick = item.onEditClick,
             modifier = Modifier
-                .size(32.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
                         colors = listOf(Color(0xFF6A11CB), Color(0xFF2575FC))
                     )
                 )
+                .size(28.dp) // Kích thước nền nhỏ lại
         ) {
             Icon(
                 imageVector = Icons.Filled.Edit,
                 contentDescription = "Chỉnh sửa ${item.label}",
                 tint = Color.White,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp) // Icon vẫn to hơn
             )
         }
+
     }
 }

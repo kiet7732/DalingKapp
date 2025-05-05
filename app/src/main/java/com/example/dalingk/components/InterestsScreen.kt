@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -134,7 +135,7 @@ fun InterestsScreenUI() {
     ) {
         item {
             Text(
-                text = "Chào mừng đến với thẻ khám phá",
+                text = stringResource(id = R.string.textfind_1),
                 color = Color.Black,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -151,7 +152,7 @@ fun InterestsScreenUI() {
                 CardInterests(
                     backgroundColor = Color(0xFFFF8A5A), // Orange
                     jsonFileName = R.raw.heart_a,
-                    text = "Tìm người yêu",
+                    text = stringResource(id = R.string.textfind_2),
                     badgeText = "",
                     modifier = Modifier
                         .weight(1f), height = 250.dp
@@ -161,7 +162,7 @@ fun InterestsScreenUI() {
 
         item {
             Text(
-                text = "Hẹn hò chung mục đích",
+                text = stringResource(id = R.string.textfind_3),
                 color = Color.Black,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -170,7 +171,7 @@ fun InterestsScreenUI() {
             )
 
             Text(
-                text = "Tìm kiếm những người có chung mục đích hẹn hò",
+                text = stringResource(id = R.string.textfind_4),
                 color = Color.Gray,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
@@ -186,7 +187,7 @@ fun InterestsScreenUI() {
                 CardInterests(
                     backgroundColor = Color(0xFFFF5A5F), // Red
                     jsonFileName = R.raw.moon_a,
-                    text = "Rảnh tối nay",
+                    text = stringResource(id = R.string.textfind_5),
                     badgeText = "",
                     modifier = Modifier.weight(1f)
                 )
@@ -195,7 +196,7 @@ fun InterestsScreenUI() {
                 CardInterests(
                     backgroundColor = Color(0xFF5A9CFF), // Blue
                     jsonFileName = R.raw.passport_a,
-                    text = "Du lịch",
+                    text = stringResource(id = R.string.textfind_6),
                     badgeText = "",
                     modifier = Modifier.weight(1f)
                 )
@@ -211,7 +212,7 @@ fun InterestsScreenUI() {
                 CardInterests(
                     backgroundColor = Color(0xFF8A5AFF), // Purple
                     jsonFileName = R.raw.movie_a,
-                    text = "Hội mê Phím",
+                    text = stringResource(id = R.string.textfind_7),
                     badgeText = "",
                     modifier = Modifier.weight(1f)
                 )
@@ -220,7 +221,7 @@ fun InterestsScreenUI() {
                 CardInterests(
                     backgroundColor = Color(0xFFFF8A5A), // Orange
                     jsonFileName = R.raw.sport_a,
-                    text = "Yêu thể thao",
+                    text = stringResource(id = R.string.textfind_8),
                     badgeText = "",
                     modifier = Modifier.weight(1f)
                 )

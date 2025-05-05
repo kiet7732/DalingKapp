@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 import data.repository.AuthViewModel
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.stringResource
+import com.example.dalingk.R
 import com.example.dalingk.components.MatchNotification
 import data.repository.Matching
 import kotlin.math.min
@@ -208,7 +210,7 @@ fun SwipeScreen(
                       .fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ){
-                    Text("Không còn hồ sơ nào!", fontSize = 20.sp, color = Color.Gray)
+                    Text(stringResource(id = R.string.profile_u), fontSize = 20.sp, color = Color.Gray)
                 }
             }
         }

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DalingK</string>
+    <string name="title_activity_start_ui">StartUI</string>
+    <string name="title_activity_get_start">GetStart</string>
+    <string name="title_activity_intro_ui">IntroUI</string>
+    <string name="title_activity_logo_start">LogoStart</string>
+    <string name="title_activity_user_intro_form">UserIntroForm</string>
+    <string name="title_activity_input_detail_u">InputDetailU</string>
+    <string name="title_activity_gender_ui">GenderUi</string>
+    <string name="title_activity_looking_for">LookingFor</string>
+    <string name="title_activity_interest_ui">InterestUI</string>
+    <string name="title_activity_up_photo">UpPhoto</string>
+    <string name="title_activity_main_lay_out">MainLayOut</string>
+    <string name="title_activity_photo_swipe_screen">PhotoSwipeScreen</string>
+    <string name="title_activity_profile_card">ProfileCard</string>
+    <string name="title_activity_profile_card_component">ProfileCardComponent</string>
+    <string name="title_activity_match_action_button_component">MatchActionButtonComponent</string>
+    <string name="title_activity_home_match">HomeMatch</string>
+    <string name="title_activity_top_bar">TopBar</string>
+    <string name="title_activity_main2">MainActivity2</string>
+    <string name="title_activity_auth_view_model">AuthViewModel</string>
+    <string name="title_activity_register">Register</string>
+    <string name="title_activity_profile_screen">ProfileScreen</string>
+    <string name="title_activity_loading">Loading</string>
+    <string name="title_activity_location_screen">LocationScreen</string>
+    <string name="title_activity_avatar_detail_screen">AvatarDetailScreen</string>
+    <string name="title_activity_bottom_sheet">BottomSheet</string>
+    <string name="title_activity_match_notif">MatchNotif</string>
+    <string name="title_activity_chat_list">ChatList</string>
+    <string name="title_activity_chat_screen">ChatScreen</string>
+    <string name="title_activity_display_photos">DisplayPhotos</string>
+    <string name="title_activity_wheel_picker">WheelPicker</string>
+    <string name="title_activity_location_ui">LocationUi</string>
+    <string name="title_activity_dynamic_lottie_animation">DynamicLottieAnimation</string>
+    <string name="title_activity_interests_screen">InterestsScreen</string>
+    <string name="title_activity_forgot_password_screen">ForgotPasswordScreen</string>
+
+    <!-- res/values/strings.xml (Vi) -->
+
+    <!-- notifi control -->
+    <string name="network_connected">Đã kết nối mạng</string>
+    <string name="network_lost">Mất kết nối mạng</string>
+    <string name="notification_denied">Quyền thông báo bị từ chối</string>
+
+    <!-- Intro -->
+    <string name="textintro_1">Chưa có tài khoản?</string>
+    <string name="textintro_2">Đăng ký</string>
+    <!-- 1 -->
+    <string name="textintro_3">Khám Phá Tình Yêu Nơi Câu Chuyện Của Bạn Bắt Đầu.</string>
+    <string name="textintro_4">Tham gia cùng chúng tôi để tìm kiếm người bạn đời lý tưởng và khơi dậy tia sáng lãng mạn trong hành trình của bạn.</string>
+    <string name="textintro_5">Đăng nhập bằng Gmail</string>
+
+    <!-- 2 -->
+    <string name="textintro_6">Hãy bắt đầu với số điện thoại của bạn</string>
+    <string name="textintro_7">Tiếp tục</string>
+    <string name="textintro_8">Chưa có tài khoản?</string>
+    <string name="textintro_9">Đăng ký ngay</string>
+    <string name="textintro_10">Quên mật khẩu</string>
+    <string name="textintro_11">Đăng nhập bằng</string>
+
+    <!-- 3 -->
+    <string name="textintro_12">Tạo Tài Khoản Của Bạn</string>
+    <string name="textintro_13">Đăng ký</string>
+    <string name="textintro_14">Đăng nhập</string>
+
+    <!-- 4 -->
+    <string name="textintro_15">Đặt Lại Mật Khẩu</string>
+    <string name="textintro_16">Nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu</string>
+    <string name="textintro_17">Gửi Liên Kết Đặt Lại</string>
+    <string name="textintro_18">Đang gửi...</string>
+    <string name="textintro_19">Quay lại Đăng nhập</string>
+
+    <!-- 3-1 -->
+    <string name="textintro_20">Định dạng email không hợp lệ</string>
+    <string name="textintro_21">Số điện thoại không được để trống</string>
+    <string name="textintro_22">Số điện thoại phải có ít nhất 10 ký tự</string>
+    <string name="textintro_23">Mật khẩu không được để trống</string>
+    <string name="textintro_24">Mật khẩu phải có ít nhất 6 ký tự</string>
+
+    <!-- 2-1 -->
+    <string name="textintro_25">Email và mật khẩu không được để trống</string>
+    <string name="textintro_26">Email không hợp lệ (ví dụ: user@example.com)</string>
+    <string name="textintro_27">Mật khẩu phải có ít nhất 6 ký tự</string>
+    <string name="textintro_28">Email hoặc mật khẩu không đúng</string>
+    <string name="textintro_29">Email không hợp lệ, vui lòng kiểm tra lại</string>
+    <string name="textintro_30">Phiên đăng nhập đã hết hạn, vui lòng thử lại</string>
+    <string name="textintro_31">Lỗi đăng nhập:</string>
+
+    <!-- 4-1 -->
+    <string name="textintro_32">Vui lòng nhập email của bạn</string>
+    <string name="textintro_33">Định dạng email không hợp lệ</string>
+    <string name="textintro_34">Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.</string>
+    <string name="textintro_35">Gửi email đặt lại mật khẩu thất bại. Vui lòng thử lại.</string>
+
+    <!-- Home match -->
+    <string name="profile_u">Không còn hồ sơ nào</string>
+
+    <!-- Find match -->
+    <string name="textfind_1">Chào mừng đến với thẻ khám phá</string>
+    <string name="textfind_2">Tìm người yêu</string>
+    <string name="textfind_3">Hẹn hò chung mục đích</string>
+    <string name="textfind_4">Tìm kiếm những người có chung mục đích hẹn hò</string>
+    <string name="textfind_5">Rảnh tối nay</string>
+    <string name="textfind_6">Du lịch</string>
+    <string name="textfind_7">Hội mê Phím</string>
+    <string name="textfind_8">Yêu thể thao</string>
+
+    <!-- Find match -->
+    <string name="textchat_1">Tin nhắn</string>
+    <string name="textchat_2">Hãy match để tìm kiếm bạn chat nhé!</string>
+    <!-- Detail  -->
+    <string name="textdetail_1">Ngôn ngữ</string>
+    <string name="textdetail_2">Chế độ</string>
+    <string name="textdetail_3">Đăng xuất</string>
+    <string name="textdetail_4">Việt Nam</string>
+    <string name="textdetail_5">Sáng</string>
+    <!-- Detail User -->
+    <string name="textdetailuser_1">Hồ Sơ Của Bạn</string>
+    <string name="textdetailuser_2">Bộ Sưu Tập Ảnh</string>
+    <string name="textdetailuser_3">Thêm ảnh</string>
+    <string name="textdetailuser_4">Thông Tin Cá Nhân</string>
+    <string name="textdetailuser_5">Họ và Tên</string>
+    <string name="textdetailuser_6">Địa Chỉ</string>
+    <string name="textdetailuser_8">Giới Tính</string>
+    <string name="textdetailuser_9">Mối Quan Hệ Tìm Kiếm</string>
+    <string name="textdetailuser_10">Sở Thích</string>
+    <string name="textdetailuser_11">Không thể đổi giới tính</string>
+    <string name="textdetailuser_12">Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.</string>
+    <string name="textdetailuser_13">Lưu thành công</string>
+
+</resources>

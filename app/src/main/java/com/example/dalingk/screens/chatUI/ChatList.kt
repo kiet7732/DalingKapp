@@ -60,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
@@ -117,7 +118,7 @@ fun ChatListUI(
                             .aspectRatio(1f) // Giữ tỷ lệ vuông (tùy chọn)
                     )
                     Text(
-                        text = "Hãy match để tìm kiếm bạn chat nhé!",
+                        text = stringResource(id = R.string.textchat_2),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 20.sp
                         ),
@@ -156,7 +157,7 @@ fun ChatListUI(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Tin nhắn",
+                                text = stringResource(id = R.string.textchat_1),
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center,

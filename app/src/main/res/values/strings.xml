@@ -34,4 +34,92 @@
     <string name="title_activity_dynamic_lottie_animation">DynamicLottieAnimation</string>
     <string name="title_activity_interests_screen">InterestsScreen</string>
     <string name="title_activity_forgot_password_screen">ForgotPasswordScreen</string>
+
+    <!-- res/values/strings.xml (En) -->
+
+    <!-- notifi control -->
+    <string name="network_connected">Connected to network</string>
+    <string name="network_lost">Network disconnected</string>
+    <string name="notification_denied">Notification permission denied</string>
+
+    <!-- Intro -->
+    <string name="textintro_1">Don’t have an account?</string>
+    <string name="textintro_2">Register</string>
+    <!-- 1 -->
+    <string name="textintro_3">Discover Love Where Your Story Begins.</string>
+    <string name="textintro_4">Join us to discover your ideal partner and ignite the sparks of romance in your journey.</string>
+    <string name="textintro_5">Login with Gmail</string>
+    <!-- 2 -->
+    <string name="textintro_6">Let’s start with your number</string>
+    <string name="textintro_7">Continue</string>
+    <string name="textintro_8">Don’t have an account?</string>
+    <string name="textintro_9">Register Now</string>
+    <string name="textintro_10">Forgot the password</string>
+    <string name="textintro_11">Login with</string>
+    <!-- 3 -->
+    <string name="textintro_12">Create Your Account</string>
+    <string name="textintro_13">Sign Up</string>
+    <string name="textintro_14">Login</string>
+    <!-- 4 -->
+    <string name="textintro_15">Reset Your Password</string>
+    <string name="textintro_16">Enter your email address and we\'ll send you a link to reset your password</string>
+    <string name="textintro_17">Send Reset Link</string>
+    <string name="textintro_18">Sending...</string>
+    <string name="textintro_19">Back to Login</string>
+    <!-- 3-1 -->
+    <string name="textintro_20">Invalid email format</string>
+    <string name="textintro_21">Phone number cannot be empty</string>
+    <string name="textintro_22">Phone must be at least 10 characters</string>
+    <string name="textintro_23">Password cannot be empty</string>
+    <string name="textintro_24">Password must be at least 6 characters</string>
+    <!-- 2-1 -->
+    <string name="textintro_25">Email and password are not allowed to leave blanks</string>
+    <string name="textintro_26">Invalid email (for example: user@example.com)</string>
+    <string name="textintro_27">Password must have at least 6 characters</string>
+    <string name="textintro_28">Email or password incorrectly</string>
+    <string name="textintro_29">The email is invalid, please check</string>
+    <string name="textintro_30">The login session has expired, please try again</string>
+    <string name="textintro_31">Login error:</string>
+    <!-- 4-1 -->
+    <string name="textintro_32">Please enter your email</string>
+    <string name="textintro_33">Invalid email format</string>
+    <string name="textintro_34">Password reset email sent. Please check your inbox.</string>
+    <string name="textintro_35">Failed to send reset email. Please try again.</string>
+
+    <!-- Home match -->
+    <string name="profile_u">There is no record</string>
+
+    <!-- Find match -->
+    <string name="textfind_1">Welcome to the discovery card</string>
+    <string name="textfind_2">Find lover</string>
+    <string name="textfind_3">Dating together</string>
+    <string name="textfind_4">Looking for people who have the same purpose of dating</string>
+    <string name="textfind_5">Free tonight</string>
+    <string name="textfind_6">Travel</string>
+    <string name="textfind_7">Film festival</string>
+    <string name="textfind_8">Love sports</string>
+
+    <!-- Find match -->
+    <string name="textchat_1">Chat</string>
+    <string name="textchat_2">Match to search for you chat!</string>
+    <!-- Detail  -->
+    <string name="textdetail_1">Language</string>
+    <string name="textdetail_2">Mode</string>
+    <string name="textdetail_3">Logout</string>
+    <string name="textdetail_4">English</string>
+    <string name="textdetail_5">Light</string>
+    <!-- Detail User -->
+    <string name="textdetailuser_1">Your Profile</string>
+    <string name="textdetailuser_2">Photo Collection</string>
+    <string name="textdetailuser_3">Add Photo</string>
+    <string name="textdetailuser_4">Personal Information</string>
+    <string name="textdetailuser_5">Full Name</string>
+    <string name="textdetailuser_6">Address</string>
+    <string name="textdetailuser_8">Gender</string>
+    <string name="textdetailuser_9">Relationship Seeking</string>
+    <string name="textdetailuser_10">Interests</string>
+    <string name="textdetailuser_11">Cannot change gender</string>
+    <string name="textdetailuser_12">No hobbies yet. Tap the edit button to add.</string>
+    <string name="textdetailuser_13">Saved successfully</string>
+
 </resources>

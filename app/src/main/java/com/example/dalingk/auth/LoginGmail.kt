@@ -74,6 +74,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
 import kotlinx.coroutines.launch
@@ -122,7 +123,7 @@ fun PhoneNumberInput(
         modifier = Modifier.padding(16.dp)
     ) {
         Text(
-            text = "Let’s start with your number",
+            text = stringResource(id = R.string.textintro_6),
             color = Color.Black,
             textAlign = TextAlign.Center,
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
@@ -228,7 +229,7 @@ fun PhoneNumberInput(
                 }
             }else{
                 Text(
-                    text = "Continue",
+                    text = stringResource(id = R.string.textintro_7),
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     style = TextStyle(fontSize = 18.sp),
@@ -244,10 +245,10 @@ fun PhoneNumberInput(
                 .padding(10.dp)
                 .fillMaxWidth()
         ) {
-            Text(text = "Bạn chưa có tài khoản?", color = Color.Gray)
+            Text(text = stringResource(id = R.string.textintro_8), color = Color.Gray)
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "Đăng ký ngay",
+                text = stringResource(id = R.string.textintro_9),
                 color = Color(0xFFFF6473),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable {
@@ -263,7 +264,7 @@ fun PhoneNumberInput(
                 .fillMaxWidth()
         ) {
             Text(
-                text = "Quên mật khẩu",
+                text = stringResource(id = R.string.textintro_10),
                 color = Color(0xFFFF0018),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable {
@@ -372,7 +373,7 @@ fun BtnLogin(text: String) {
                     .size(30.dp) // Adjust size
             )
             Text(
-                text = "Login with $text",
+                text = stringResource(id = R.string.textintro_11) + "$text",
                 color = Color.Black,
                 style = TextStyle(
                     fontSize = 16.sp,

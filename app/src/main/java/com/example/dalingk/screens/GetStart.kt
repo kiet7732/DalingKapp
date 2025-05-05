@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -149,7 +150,7 @@ fun LoginScreenStart(onLoginClick: () -> Unit) {
 
         // Main Text
         Text(
-            text = "Discover Love Where Your Story Begins.",
+            text = stringResource(id = R.string.textintro_3),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
@@ -157,7 +158,7 @@ fun LoginScreenStart(onLoginClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Join us to discover your ideal partner and ignite the sparks of romance in your journey.",
+            text = stringResource(id = R.string.textintro_4),
             fontSize = 14.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center,
@@ -179,7 +180,7 @@ fun LoginScreenStart(onLoginClick: () -> Unit) {
                 tint = Color.White
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Login with Gmail", color = Color.White,
+            Text(text = stringResource(id = R.string.textintro_5), color = Color.White,
                 modifier = Modifier.padding(4.dp))
         }
     }

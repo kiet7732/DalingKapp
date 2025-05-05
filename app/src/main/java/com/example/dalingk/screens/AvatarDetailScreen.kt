@@ -1,6 +1,7 @@
 package com.example.dalingk.screens
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,12 +51,13 @@ import com.example.dalingk.components.EditBottomSheet
 import com.example.dalingk.components.LottieAnimationCus
 import com.example.dalingk.components.detailUser.cities
 import com.example.dalingk.navigation.Routes
+import data.model.LanguagePreferences
 import data.repository.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import util.ImageLoaderFactory
-
+import java.util.Locale
 
 class AvatarDetailScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,15 +68,13 @@ class AvatarDetailScreen : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                )
-                {
+                ) {
                     GreetingPreview12()
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun AvatarDetail(navController: NavController, context: Context) {
@@ -82,17 +83,17 @@ fun AvatarDetail(navController: NavController, context: Context) {
     val currentUserId = viewModel.auth.currentUser?.uid ?: ""
 
     var showBottomSheet by remember { mutableStateOf(false) }
+    var editSection by remember { mutableStateOf<String?>(null) } // Thêm biến để xác định nội dung BottomSheet
 
     LaunchedEffect(currentUserId) {
         currentUserId.let { id ->
-            viewModel.fetchUserData(id) // Gọi fetchUserData bất kể userData có null hay không
+            viewModel.fetchUserData(id)
         }
     }
 
     Log.d("DEBUG", "ID người dùng hiện tại: $currentUserId")
 
     val imageLoader = remember { ImageLoaderFactory.create(context) }
-
     val imageUrls: List<String> = userData?.imageUrls ?: emptyList()
     val firstImageUrl = imageUrls.firstOrNull() ?: ""
 
@@ -100,7 +101,6 @@ fun AvatarDetail(navController: NavController, context: Context) {
         Log.d("AvatarDetail", "UserData: $userData")
         Log.d("AvatarDetail", "Image URLs: ${userData?.imageUrls}")
     }
-
 
     Column(
         modifier = Modifier
@@ -146,7 +146,7 @@ fun AvatarDetail(navController: NavController, context: Context) {
                     AsyncImage(
                         model = imageRequest,
                         contentDescription = "Avatar",
-                        imageLoader = imageLoader, // Sử dụng ImageLoader tùy chỉnh
+                        imageLoader = imageLoader,
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape),
@@ -160,34 +160,17 @@ fun AvatarDetail(navController: NavController, context: Context) {
                     )
                 }
             }
-
-//            Image(
-//                imageVector = Icons.Filled.Edit,
-//                contentDescription = "Edit Avatar",
-//                modifier = Modifier
-//                    .size(42.dp)
-//                    .padding(4.dp)
-//                    .align(Alignment.TopCenter)
-//                    .offset(x = 45.dp, y = -5.dp)
-//            )
-
-//            LottieAnimationCus(
-//                jsonFileName = R.raw.i_anim,
-//                modifier = Modifier
-//                    .size(72.dp)
-//                    .padding(4.dp)
-//                    .align(Alignment.TopCenter)
-//                    .offset(x = 70.dp, y = -5.dp)
-//            )
-
         }
         Spacer(modifier = Modifier.height(55.dp))
 
-        TextCusADetail("Ngôn ngữ", "Tiếng Việt", {
+        // Thêm nút chuyển đổi ngôn ngữ
+        TextCusADetail(stringResource(id = R.string.textdetail_1), getCurrentLanguage(context), {
             showBottomSheet = true
+            editSection = "language"
         })
-        TextCusADetail("Chế độ", "Sáng", {
+        TextCusADetail(stringResource(id = R.string.textdetail_2), stringResource(id = R.string.textdetail_5), {
             showBottomSheet = true
+            editSection = "other"
         })
 
         Spacer(modifier = Modifier.weight(1f))
@@ -197,7 +180,6 @@ fun AvatarDetail(navController: NavController, context: Context) {
                 CoroutineScope(Dispatchers.Main).launch {
                     UserPreferences.clearUserId(context)
                     UserPreferences.clearAuthToken(context)
-
                 }
                 viewModel.logout()
                 navController.navigate(Routes.TrailerScreen) {
@@ -208,28 +190,116 @@ fun AvatarDetail(navController: NavController, context: Context) {
                 .fillMaxWidth()
                 .padding(bottom = 10.dp)
         ) {
-            Text(text = "Đăng Xuất")
+            Text(text = stringResource(id = R.string.textdetail_3))
         }
     }
 
-//    DisposableEffect(Unit) {
-//        onDispose {
-//            imageLoader.memoryCache?.clear() // Xóa bộ nhớ đệm khi rời màn hình
-//        }
-//    }
-
     if (showBottomSheet) {
         EditBottomSheet(
-            isVisible = true,
-            onDismiss = { showBottomSheet = false }, // Đóng BottomSheet
+            isVisible = showBottomSheet,
+            onDismiss = {
+                showBottomSheet = false
+                editSection = null
+            },
             content = {
-
+                when (editSection) {
+                    "language" -> LanguageSelectionScreen(context) // Giao diện chọn ngôn ngữ
+                    else -> Text("soon coming", color = Color.Black)
+                }
             }
         )
     }
-
 }
 
+@Composable
+fun LanguageSelectionScreen(context: Context) {
+    // Khởi tạo selectedLanguage với giá trị mặc định
+    var selectedLanguage by remember { mutableStateOf("vi") } // Giá trị mặc định là "vi"
+
+    // Lấy ngôn ngữ hiện tại từ LanguagePreferences
+    val languageFlow = LanguagePreferences.getLanguage(context)
+    LaunchedEffect(Unit) {
+        languageFlow.collect { lang ->
+            selectedLanguage = lang // Cập nhật selectedLanguage khi ngôn ngữ thay đổi
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Chọn ngôn ngữ",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Nút chọn Tiếng Việt
+        Button(
+            onClick = {
+                selectedLanguage = "vi"
+                updateLanguage(context, "vi")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selectedLanguage == "vi") Color(0xffff5069) else Color.Gray
+            )
+        ) {
+            Text("Tiếng Việt")
+        }
+
+        // Nút chọn Tiếng Anh
+        Button(
+            onClick = {
+                selectedLanguage = "en"
+                updateLanguage(context, "en")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selectedLanguage == "en") Color(0xffff5069) else Color.Gray
+            )
+        ) {
+            Text("English")
+        }
+    }
+}
+
+@Composable
+fun getCurrentLanguage(context: Context): String {
+    val languageFlow = LanguagePreferences.getLanguage(context)
+    var language by remember { mutableStateOf("vi") } // Giá trị mặc định
+
+    LaunchedEffect(Unit) {
+        languageFlow.collect { lang ->
+            language = lang
+        }
+    }
+
+    return when (language) {
+        "vi" -> "Tiếng Việt"
+        "en" -> "English"
+        else -> "Tiếng Việt"
+    }
+}
+
+fun updateLanguage(context: Context, languageCode: String) {
+    CoroutineScope(Dispatchers.Main).launch {
+        LanguagePreferences.saveLanguage(context, languageCode)
+        val locale = Locale(languageCode)
+        Locale.setDefault(locale)
+        val configuration = Configuration(context.resources.configuration)
+        configuration.setLocale(locale)
+        context.resources.updateConfiguration(configuration, context.resources.displayMetrics)
+        // Gọi lại activity để áp dụng ngôn ngữ mới
+        (context as? ComponentActivity)?.recreate()
+    }
+}
 
 @Composable
 fun TextCusADetail(
@@ -238,8 +308,8 @@ fun TextCusADetail(
     onEditClick: () -> Unit
 ) {
     Divider(
-        color = Color.Gray, // Màu của đường kẻ
-        thickness = 0.6.dp   // Độ dày của đường kẻ
+        color = Color.Gray,
+        thickness = 0.6.dp
     )
     Row(
         modifier = Modifier
@@ -247,13 +317,12 @@ fun TextCusADetail(
             .padding(10.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null, // Tắt hiệu ứng nhấn
+                indication = null,
                 onClick = onEditClick
             ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Hiển thị nhãn (Label)
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium.copy(
@@ -263,14 +332,13 @@ fun TextCusADetail(
             color = Color.Black
         )
 
-        Spacer(modifier = Modifier.weight(1f)) // Tạo khoảng cách linh hoạt giữa "Ngôn ngữ" và "Tiếng Việt"
+        Spacer(modifier = Modifier.weight(1f))
         Text(
             text = labelControl,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 16.sp
             )
         )
-        // Biểu tượng chỉnh sửa
         Icon(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
@@ -279,7 +347,6 @@ fun TextCusADetail(
         )
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

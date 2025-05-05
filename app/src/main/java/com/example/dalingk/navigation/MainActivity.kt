@@ -2,6 +2,7 @@ package com.example.dalingk.navigation
 
 import android.Manifest
 import android.content.Context
+import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -69,8 +70,14 @@ import data.model.CloudinaryHelper
 import data.repository.AuthViewModel
 import data.viewmodel.UserInputViewModel
 import androidx.core.app.NotificationCompat
-//import components.profiles
+import data.model.LanguagePreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.util.Locale
 
+//import components.profiles
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,7 +86,6 @@ class MainActivity : ComponentActivity() {
         // Đăng ký launcher để yêu cầu quyền thông báo
         val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
-                // Hiển thị thông báo khi quyền bị từ chối
                 Toast.makeText(this, "Quyền thông báo bị từ chối", Toast.LENGTH_SHORT).show()
             }
         }
@@ -93,6 +99,17 @@ class MainActivity : ComponentActivity() {
             ) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+
+        // Lấy ngôn ngữ từ DataStore và áp dụng Locale
+        CoroutineScope(Dispatchers.Main).launch {
+            val language = LanguagePreferences.getLanguage(this@MainActivity).first()
+            Log.d("MainActivity", "Applying language: $language")
+            val locale = Locale(language)
+            Locale.setDefault(locale)
+            val configuration = Configuration(resources.configuration)
+            configuration.setLocale(locale)
+            resources.updateConfiguration(configuration, resources.displayMetrics)
         }
 
         setContent {
@@ -117,6 +134,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     override fun onResume() {
         super.onResume()
         util.AppState.setAppForeground(true)
@@ -125,6 +143,19 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         util.AppState.setAppForeground(false)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        CoroutineScope(Dispatchers.Main).launch {
+            val language = LanguagePreferences.getLanguage(this@MainActivity).first()
+            Log.d("MainActivity", "Reapplying language on config change: $language")
+            val locale = Locale(language)
+            Locale.setDefault(locale)
+            val configuration = Configuration(newConfig)
+            configuration.setLocale(locale)
+            resources.updateConfiguration(configuration, resources.displayMetrics)
+        }
     }
 }
 
