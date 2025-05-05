@@ -123,7 +123,6 @@ fun ChatScreen(
     // Đánh dấu tất cả tin nhắn trong matchId là đã thông báo khi mở ChatScreen
     LaunchedEffect(matchId) {
         coroutineScope.launch {
-            // Đánh dấu tất cả tin nhắn trong matchId hiện tại là đã thông báo
             AppChatDatabase.getDatabase(context).chatDao().markAllMessagesAsNotified(matchId)
             viewModel.loadMessages(matchId)
             util.AppState.setCurrentChatScreen(matchId) // Cập nhật trạng thái màn hình chat
@@ -142,43 +141,18 @@ fun ChatScreen(
         }
     }
 
-    // Quản lý phân trang
-    var visibleMessageCount by remember { mutableStateOf(50) }
-    val totalMessages = messages.size
-    val pageSize = 50
-    var isLoading by remember { mutableStateOf(false) }
-
-    // Sắp xếp tin nhắn theo thời gian tăng dần
-    val displayedMessages = remember(messages, visibleMessageCount) {
-        messages
-            .sortedBy { it.timestamp } // Sắp xếp tăng dần để tin nhắn cũ ở trên, mới ở dưới
-            .takeLast(visibleMessageCount.coerceAtMost(totalMessages))
-    }
-
     // Trạng thái cuộn
     val lazyListState = rememberLazyListState()
 
     // Tự động cuộn đến tin nhắn mới nhất
-    LaunchedEffect(matchId, displayedMessages) {
-        if (displayedMessages.isNotEmpty()) {
-            lazyListState.animateScrollToItem(displayedMessages.size - 1)
+    LaunchedEffect(messages) {
+        if (messages.isNotEmpty()) {
+            lazyListState.animateScrollToItem(messages.size - 1)
         }
     }
 
     LaunchedEffect(matchId) {
         viewModel.startMessagesListener(matchId)
-    }
-
-    // Tải thêm tin nhắn khi cuộn gần đầu
-    LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.firstVisibleItemIndex }
-            .collect { firstVisibleIndex ->
-                if (firstVisibleIndex < 10 && visibleMessageCount < totalMessages && !isLoading) {
-                    isLoading = true
-                    visibleMessageCount += pageSize
-                    isLoading = false
-                }
-            }
     }
 
     Column(
@@ -249,25 +223,10 @@ fun ChatScreen(
                     .padding(horizontal = 8.dp),
                 state = lazyListState,
                 contentPadding = PaddingValues(vertical = 8.dp),
-                reverseLayout = false // Bỏ reverseLayout để hiển thị từ trên xuống
+                reverseLayout = false
             ) {
-                if (isLoading) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-                itemsIndexed(displayedMessages) { index, message ->
-                    val previousMessage = displayedMessages.getOrNull(index - 1)
+                itemsIndexed(messages) { index, message ->
+                    val previousMessage = messages.getOrNull(index - 1)
                     val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
                     val shouldShowDate = previousMessage == null || !isSameDay(
                         message.timestamp,

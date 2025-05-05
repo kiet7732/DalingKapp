@@ -67,19 +67,15 @@ class ChatListViewModel(
     private var currentPage = 0
     private val pageSize = 50
 
-    fun loadMessages(matchId: String, loadMore: Boolean = false) {
+    // ChatListViewModel.kt
+    fun loadMessages(matchId: String) {
         viewModelScope.launch {
             currentUserId?.let { ownerId ->
-                if (loadMore) {
-                    currentPage++
-                } else {
-                    currentPage = 0
-                    _messages.value = emptyList() // Reset danh sách khi tải lại từ đầu
+                val allMessages = chatDao.getMessagesByMatchId(matchId, ownerId).asFlow()
+                allMessages.collect { messages ->
+                    _messages.value = messages.sortedBy { it.timestamp }
+                    Log.d("ChatListViewModel", "Loaded ${messages.size} messages for matchId: $matchId")
                 }
-                val offset = currentPage * pageSize
-                val newMessages = chatDao.getMessagesByMatchIdWithPagination(matchId, ownerId, pageSize, offset)
-                _messages.value = (_messages.value + newMessages).distinctBy { it.messageId }.sortedBy { it.timestamp }
-                Log.d("ChatListViewModel", "Loaded ${newMessages.size} messages for matchId: $matchId (page: $currentPage)")
             }
         }
     }

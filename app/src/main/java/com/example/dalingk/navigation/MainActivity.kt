@@ -117,6 +117,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    override fun onResume() {
+        super.onResume()
+        util.AppState.setAppForeground(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        util.AppState.setAppForeground(false)
+    }
 }
 
 // Set up navigation in your NavHost:

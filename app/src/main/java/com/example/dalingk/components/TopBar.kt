@@ -1,6 +1,7 @@
 package com.example.dalingk.components
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -56,6 +57,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
+import androidx.compose.ui.zIndex
 
 class TopBar : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +74,15 @@ class TopBar : ComponentActivity() {
                 }
             }
         }
+    }
+    override fun onResume() {
+        super.onResume()
+        util.AppState.setAppForeground(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        util.AppState.setAppForeground(false)
     }
 }
 
@@ -113,68 +124,36 @@ fun CircularIconButton(
 @Composable
 fun TopBarU(
     modifier: Modifier = Modifier,
-    notificationMessage: String? // Nhận thông báo từ ViewModel
+    notificationMessage: String?
 ) {
     var showNotification by remember { mutableStateOf(false) }
     var currentMessage by remember { mutableStateOf<String?>(null) }
 
-    // Cập nhật thông báo và hiển thị Snackbar
     LaunchedEffect(notificationMessage) {
         notificationMessage?.let { message ->
             currentMessage = message
             showNotification = true
-            // Tự động ẩn sau 3 giây
-            delay(3000)
+            Log.d("TopBarU","--------------- ${ currentMessage }")
+                delay(3000)
             showNotification = false
             currentMessage = null
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
             .padding(WindowInsets.systemBars.asPaddingValues())
-            .padding(bottom = 0.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            CircularIconButton(
-                iconResId = R.drawable.icon_h1,
-                onClick = { println("Nút được nhấn! - left") },
-                iconSize = 20.dp,
-                buttonSize = 44.dp,
-                contentDescription = "Left Action",
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            CustomLogo(
-                modifier = Modifier.width(200.dp)
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            CircularIconButton(
-                iconResId = R.drawable.icon_h2,
-                onClick = { println("Nút được nhấn! - right") },
-                iconSize = 20.dp,
-                buttonSize = 44.dp,
-                contentDescription = "Right Action",
-            )
-        }
-
-        // Snackbar thông báo
+        // Thông báo Snackbar nằm trên
         AnimatedVisibility(
             visible = showNotification,
             enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)),
             exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)),
             modifier = Modifier
-                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 8.dp)
+                .zIndex(1f) // Đảm bảo nằm trên Column
         ) {
             Card(
                 modifier = Modifier
@@ -191,19 +170,58 @@ fun TopBarU(
                         .fillMaxWidth()
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center // Căn giữa nội dung
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = currentMessage ?: "",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        fontSize = 14.sp
                     )
                 }
             }
         }
+
+        // Nội dung chính bên dưới (Column bị đè lên)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .zIndex(0f) // hoặc bỏ zIndex nếu không cần
+                .padding(horizontal = 16.dp, vertical = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                CircularIconButton(
+                    iconResId = R.drawable.icon_h1,
+                    onClick = { println("Nút được nhấn! - left") },
+                    iconSize = 20.dp,
+                    buttonSize = 44.dp,
+                    contentDescription = "Left Action",
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                CustomLogo(
+                    modifier = Modifier.width(200.dp)
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                CircularIconButton(
+                    iconResId = R.drawable.icon_h2,
+                    onClick = { println("Nút được nhấn! - right") },
+                    iconSize = 20.dp,
+                    buttonSize = 44.dp,
+                    contentDescription = "Right Action",
+                )
+            }
+        }
     }
+
 }
+
 
 
 @Preview(showBackground = true)
