@@ -71,12 +71,15 @@ import data.repository.AuthViewModel
 
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
+import com.example.dalingk.screens.updateLanguage
+import data.model.LanguagePreferences
 import kotlinx.coroutines.launch
 
 class StartUI : ComponentActivity() {
@@ -111,6 +114,16 @@ fun PhoneNumberInput(
     var showSuccess by remember { mutableStateOf(false) }
     // Collect loading state
     val isLoading by viewModel.isLoading.collectAsState()
+    // Get current language
+    val languageFlow = LanguagePreferences.getLanguage(context)
+    var currentLanguage by remember { mutableStateOf("vi") }
+
+    // Update currentLanguage when language changes
+    LaunchedEffect(Unit) {
+        languageFlow.collect { lang ->
+            currentLanguage = lang
+        }
+    }
 
     // Use LaunchedEffect or coroutine scope to handle suspend functions
     val scope = rememberCoroutineScope()
@@ -201,9 +214,21 @@ fun PhoneNumberInput(
                     }, { error ->
                         // Customize the error message for better user feedback
                         errorMessage = when {
-                            error.contains("incorrect", ignoreCase = true) -> "Email hoặc mật khẩu không đúng"
-                            error.contains("malformed", ignoreCase = true) -> "Email không hợp lệ, vui lòng kiểm tra lại"
-                            error.contains("expired", ignoreCase = true) -> "Phiên đăng nhập đã hết hạn, vui lòng thử lại"
+                            error.contains(
+                                "incorrect",
+                                ignoreCase = true
+                            ) -> "Email hoặc mật khẩu không đúng"
+
+                            error.contains(
+                                "malformed",
+                                ignoreCase = true
+                            ) -> "Email không hợp lệ, vui lòng kiểm tra lại"
+
+                            error.contains(
+                                "expired",
+                                ignoreCase = true
+                            ) -> "Phiên đăng nhập đã hết hạn, vui lòng thử lại"
+
                             else -> "Lỗi đăng nhập: $error"
                         }
                     })
@@ -213,7 +238,7 @@ fun PhoneNumberInput(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xfffe506b)),
             contentPadding = PaddingValues(horizontal = 30.dp, vertical = 17.dp),
         ) {
-            if (isLoading){
+            if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -227,7 +252,7 @@ fun PhoneNumberInput(
                         strokeWidth = 2.dp // Thinner ring
                     )
                 }
-            }else{
+            } else {
                 Text(
                     text = stringResource(id = R.string.textintro_7),
                     color = Color.White,
@@ -236,7 +261,6 @@ fun PhoneNumberInput(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
         }
         Spacer(modifier = Modifier.height(4.dp))
         Row(
@@ -270,6 +294,28 @@ fun PhoneNumberInput(
                 modifier = Modifier.clickable {
                     onNextSs2()
                 }
+            )
+        }
+
+        // Thêm hai nút ngôn ngữ hình tròn
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .padding(10.dp)
+                .fillMaxWidth()
+        ) {
+            LanguageButton(
+                languageCode = "vi",
+                iconResId = R.drawable.ic_flag_vn, // Thay bằng ID biểu tượng cờ Việt Nam
+                isSelected = currentLanguage == "vi",
+                onClick = { updateLanguage(context, "vi") }
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            LanguageButton(
+                languageCode = "en",
+                iconResId = R.drawable.ic_flag_uk, // Thay bằng ID biểu tượng cờ Anh
+                isSelected = currentLanguage == "en",
+                onClick = { updateLanguage(context, "en") }
             )
         }
 
@@ -336,7 +382,7 @@ fun CustomOutlinedTextField(
         } else null,
         visualTransformation = if (isPassword && !isShowPassword) PasswordVisualTransformation() else VisualTransformation.None,
 
-    )
+        )
 }
 
 @Composable
@@ -421,7 +467,36 @@ fun InLine() {
                 .requiredWidth(79.dp)
         )
     }
-    Spacer(modifier = Modifier.height(40.dp))
+}
+
+
+// Composable cho nút ngôn ngữ hình tròn
+@Composable
+fun LanguageButton(
+    languageCode: String,
+    iconResId: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(50.dp)
+            .clip(CircleShape)
+            .background(Color.White)
+            .border(2.dp, Color(0xfffe506b), CircleShape)
+            .clickable {
+                if (isSelected) {
+                } else onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconResId),
+            contentDescription = "Language $languageCode",
+            modifier = Modifier.size(30.dp),
+            tint = Color.Unspecified
+        )
+    }
 }
 
 @Preview(showBackground = true)

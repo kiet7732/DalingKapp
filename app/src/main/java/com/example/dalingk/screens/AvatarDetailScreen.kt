@@ -239,8 +239,10 @@ fun LanguageSelectionScreen(context: Context) {
         // Nút chọn Tiếng Việt
         Button(
             onClick = {
-                selectedLanguage = "vi"
-                updateLanguage(context, "vi")
+                if (selectedLanguage != "vi") {
+                    selectedLanguage = "vi"
+                    updateLanguage(context, "vi")
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,8 +257,10 @@ fun LanguageSelectionScreen(context: Context) {
         // Nút chọn Tiếng Anh
         Button(
             onClick = {
-                selectedLanguage = "en"
-                updateLanguage(context, "en")
+                if (selectedLanguage != "en") {
+                    selectedLanguage = "en"
+                    updateLanguage(context, "en")
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
