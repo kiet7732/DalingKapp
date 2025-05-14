@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -19,11 +20,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DalingK"
         tools:targetApi="31">
-        <activity
-            android:name=".components.detailUser.OtherUserProfileScreen"
-            android:exported="false"
-            android:label="@string/title_activity_other_user_profile_screen"
-            android:theme="@style/Theme.DalingK" />
         <activity
             android:name=".auth.ForgotPasswordScreen"
             android:exported="false"

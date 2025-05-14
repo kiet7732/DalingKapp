@@ -11,12 +11,12 @@ data class CachedMessage(
     val messageId: String,
     val matchId: String,
     val senderId: String,
-    val text: String, // Sẽ chứa văn bản hoặc URL ảnh
+    val text: String, // Chứa văn bản, URL ảnh, hoặc URL âm thanh
     val timestamp: Long,
     val isSynced: Boolean = false,
     val ownerId: String,
     val isNotified: Boolean = false,
-    val messageType: String = "text" // Thêm trường messageType: "text" hoặc "image"
+    val messageType: String = "text" // "text", "image", hoặc "audio"
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         messageId = parcel.readString() ?: "",

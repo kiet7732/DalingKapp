@@ -1,5 +1,6 @@
 package com.example.dalingk.screens.chatUI
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,6 +46,10 @@ import com.example.dalingk.screens.ui.theme.DalingKTheme
 import data.chat.viewmodel.ChatListViewModel
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -66,7 +71,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -74,6 +85,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
@@ -87,7 +99,9 @@ import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
 import data.viewmodel.UserInputViewModel
+import kotlinx.coroutines.delay
 import util.ImageUtils
+import java.io.File
 
 class ChatScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,8 +143,40 @@ fun ChatScreen(
     val currentUserId = UserPreferences.getUserId(context) ?: return
     val coroutineScope = rememberCoroutineScope()
     val userInputViewModel = UserInputViewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Đánh dấu tất cả tin nhắn trong matchId là đã thông báo khi mở ChatScreen
+    // Quyền ghi âm
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Cần quyền ghi âm để sử dụng tính năng này")
+            }
+        }
+    }
+
+    // Trạng thái ghi âm
+    var isRecording by remember { mutableStateOf(false) }
+    var isRecordingStopped by remember { mutableStateOf(false) }
+    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
+    var recordingProgress by remember { mutableStateOf(0f) }
+    var showAttachmentMenu by remember { mutableStateOf(false) }
+
+    // Cập nhật tiến trình ghi âm
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            recordingProgress = 0f
+            while (isRecording) {
+                recordingProgress = (recordingProgress + 0.1f) % 1f
+                delay(100)
+            }
+        } else {
+            recordingProgress = 0f
+        }
+    }
+
     LaunchedEffect(matchId) {
         coroutineScope.launch {
             AppChatDatabase.getDatabase(context).chatDao().markAllMessagesAsNotified(matchId)
@@ -139,10 +185,7 @@ fun ChatScreen(
         }
     }
 
-    // Trạng thái danh sách tin nhắn
     val messages by viewModel.messages.collectAsState()
-
-    // Lấy thông tin người dùng đối phương
     var userData by remember { mutableStateOf<UserData?>(null) }
     LaunchedEffect(matchId) {
         coroutineScope.launch {
@@ -151,10 +194,7 @@ fun ChatScreen(
         }
     }
 
-    // Trạng thái cuộn
     val lazyListState = rememberLazyListState()
-
-    // Tự động cuộn đến tin nhắn mới nhất
     LaunchedEffect(messages) {
         if (messages.isNotEmpty()) {
             lazyListState.animateScrollToItem(messages.size - 1)
@@ -165,237 +205,438 @@ fun ChatScreen(
         viewModel.startMessagesListener(matchId)
     }
 
-    // Trình chọn ảnh
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
         uri?.let {
             coroutineScope.launch {
                 try {
-                    // Nén ảnh
-                    val compressedFile =
-                        ImageUtils.compressImageToFile(context, it, maxSizeKB = 150)
-                    // Tải ảnh lên Cloudinary
-                    userInputViewModel.uploadPhotoToCloudinary(
+                    val compressedFile = ImageUtils.compressImageToFile(context, it, maxSizeKB = 150)
+                    userInputViewModel.uploadFileToCloudinary(
                         filePath = compressedFile.absolutePath,
+                        isAudio = false,
                         onSuccess = { imageUrl ->
-                            // Gửi URL ảnh dưới dạng tin nhắn
+                            Log.d("ChatScreen", "Image URL uploaded: $imageUrl")
                             viewModel.sendImageMessage(matchId, currentUserId, imageUrl)
                         },
                         onError = { error ->
-                            // Hiển thị lỗi nếu có
+                            Log.e("ChatScreen", "Error uploading image: $error")
                             coroutineScope.launch {
-                                // Có thể thêm Snackbar để thông báo lỗi
+                                snackbarHostState.showSnackbar("Lỗi tải ảnh: $error")
                             }
                         }
                     )
                 } catch (e: Exception) {
-                    // Xử lý lỗi
+                    Log.e("ChatScreen", "Exception during image processing: ${e.message}")
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Lỗi xử lý ảnh: ${e.message}")
+                    }
                 }
             }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(WindowInsets.systemBars.asPaddingValues())
-    ) {
-        // Header
-        userData?.let { data ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        content = { paddingValues ->
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                            Routes.DetailU,
-                            2
-                        )
-                        navController.navigate(Routes.MainMatch)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Image(
-                        painter = if (data.avatarUrl?.isNotEmpty() == true) {
-                            rememberAsyncImagePainter(
-                                model = data.avatarUrl,
-                                placeholder = painterResource(R.drawable.ic_error),
-                                error = painterResource(R.drawable.ic_error)
-                            )
-                        } else {
-                            painterResource(R.drawable.ic_error)
-                        },
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = data.name,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Divider(modifier = Modifier.padding(vertical = 1.dp))
-            }
-        }
-
-        // Danh sách tin nhắn
-        Box(modifier = Modifier.weight(1f)) {
-            LazyColumn(
-                modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp),
-                state = lazyListState,
-                contentPadding = PaddingValues(vertical = 8.dp),
-                reverseLayout = false
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(paddingValues)
             ) {
-                itemsIndexed(messages) { index, message ->
-                    val previousMessage = messages.getOrNull(index - 1)
-                    val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
-                    val shouldShowDate = previousMessage == null || !isSameDay(
-                        message.timestamp,
-                        previousMessage.timestamp
-                    )
-                    if (shouldShowDate) {
-                        Text(
-                            text = formatFriendlyDate(message.timestamp),
+                userData?.let { data ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray.copy(alpha = 0.7f),
-                            fontSize = 12.sp
-                        )
+                                .padding(vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = {
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    Routes.DetailU,
+                                    2
+                                )
+                                navController.navigate(Routes.MainMatch)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Image(
+                                painter = if (data.avatarUrl?.isNotEmpty() == true) {
+                                    rememberAsyncImagePainter(
+                                        model = data.avatarUrl,
+                                        placeholder = painterResource(R.drawable.ic_error),
+                                        error = painterResource(R.drawable.ic_error)
+                                    )
+                                } else {
+                                    painterResource(R.drawable.ic_error)
+                                },
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = data.name,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Divider(modifier = Modifier.padding(vertical = 1.dp))
                     }
-                    ChatItem(
-                        message = message,
-                        currentUserId = currentUserId,
-                        userData = userData,
-                        showAvatar = !isSameSenderAsPrevious && message.senderId != currentUserId
-                    )
-                    Spacer(modifier = Modifier.height(if (isSameSenderAsPrevious) 2.dp else 8.dp))
                 }
-            }
-        }
 
-        // Hộp nhập tin nhắn
-        var messageText by remember { mutableStateOf("") }
-        val keyboardController = LocalSoftwareKeyboardController.current
-        val focusManager = LocalFocusManager.current
+                Box(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp),
+                        state = lazyListState,
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                        reverseLayout = false
+                    ) {
+                        itemsIndexed(messages) { index, message ->
+                            val previousMessage = messages.getOrNull(index - 1)
+                            val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
+                            val shouldShowDate = previousMessage == null || !isSameDay(
+                                message.timestamp,
+                                previousMessage.timestamp
+                            )
+                            if (shouldShowDate) {
+                                Text(
+                                    text = formatFriendlyDate(message.timestamp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray.copy(alpha = 0.7f),
+                                    fontSize = 12.sp
+                                )
+                            }
+                            ChatItem(
+                                message = message,
+                                currentUserId = currentUserId,
+                                userData = userData,
+                                showAvatar = !isSameSenderAsPrevious && message.senderId != currentUserId
+                            )
+                            Spacer(modifier = Modifier.height(if (isSameSenderAsPrevious) 2.dp else 8.dp))
+                        }
+                    }
+                }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 5.dp)
-                .background(Color.Transparent)
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Nút chọn ảnh
-                IconButton(
-                    onClick = {
-                        pickImageLauncher.launch("image/*")
-                    },
+                var messageText by remember { mutableStateOf("") }
+                val keyboardController = LocalSoftwareKeyboardController.current
+                val focusManager = LocalFocusManager.current
+
+                Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .padding(end = 4.dp)
+                        .fillMaxWidth()
+                        .padding(bottom = 5.dp)
+                        .background(Color.Transparent)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AttachFile,
-                        contentDescription = "Chọn ảnh",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                OutlinedTextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(4.dp),
-                    placeholder = {
-                        Text("Nhập tin nhắn...", color = Color.Gray.copy(alpha = 0.5f))
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Gray.copy(alpha = 0.5f)
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (messageText.isNotBlank()) {
-                                viewModel.sendMessage(matchId, currentUserId, messageText)
-                                messageText = ""
-                                focusManager.clearFocus()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Nút mở menu đính kèm
+                        Box {
+                            IconButton(
+                                onClick = { showAttachmentMenu = true },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .padding(end = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Đính kèm",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showAttachmentMenu,
+                                onDismissRequest = { showAttachmentMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Chọn ảnh") },
+                                    onClick = {
+                                        pickImageLauncher.launch("image/*")
+                                        showAttachmentMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.AttachFile,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Ghi âm") },
+                                    onClick = {
+                                        if (ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.RECORD_AUDIO
+                                            ) == PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            try {
+                                                // Tạo file tạm thời cho âm thanh
+                                                val fileName =
+                                                    "${context.cacheDir}/audio_${System.currentTimeMillis()}.m4a"
+                                                audioFile = File(fileName)
+
+                                                // Khởi tạo MediaRecorder
+                                                mediaRecorder = MediaRecorder().apply {
+                                                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                                                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                                                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                                    setOutputFile(fileName)
+                                                    prepare()
+                                                    start()
+                                                }
+                                                isRecording = true
+                                                Log.d("ChatScreen", "Started recording: $fileName")
+                                            } catch (e: Exception) {
+                                                Log.e("ChatScreen", "Failed to start recording: ${e.message}")
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("Lỗi khởi động ghi âm: ${e.message}")
+                                                }
+                                                audioFile?.delete()
+                                                audioFile = null
+                                                isRecording = false
+                                            }
+                                        } else {
+                                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                        }
+                                        showAttachmentMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Mic,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                )
                             }
                         }
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                FloatingActionButton(
-                    onClick = {
-                        if (messageText.isNotBlank()) {
-                            viewModel.sendMessage(matchId, currentUserId, messageText)
-                            messageText = ""
-                            focusManager.clearFocus()
+
+                        // Ô nhập tin nhắn hoặc giao diện ghi âm
+                        if (isRecording || isRecordingStopped) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp)
+                                    .background(Color.White, RoundedCornerShape(20.dp))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                LinearProgressIndicator(
+                                    progress = recordingProgress,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(4.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = Color.Gray.copy(alpha = 0.3f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                if (isRecording) {
+                                    IconButton(
+                                        onClick = {
+                                            try {
+                                                mediaRecorder?.apply {
+                                                    stop()
+                                                    release()
+                                                }
+                                                mediaRecorder = null
+                                                isRecording = false
+                                                isRecordingStopped = true
+                                                Log.d("ChatScreen", "Recording stopped: ${audioFile?.absolutePath}")
+                                            } catch (e: Exception) {
+                                                Log.e("ChatScreen", "Failed to stop recording: ${e.message}")
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("Lỗi dừng ghi âm: ${e.message}")
+                                                }
+                                                audioFile?.delete()
+                                                audioFile = null
+                                                isRecording = false
+                                                isRecordingStopped = false
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Stop,
+                                            contentDescription = "Dừng ghi âm",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    IconButton(
+                                        onClick = {
+                                            audioFile?.let { file ->
+                                                if (file.exists() && file.length() > 0) {
+                                                    coroutineScope.launch {
+                                                        userInputViewModel.uploadFileToCloudinary(
+                                                            filePath = file.absolutePath,
+                                                            isAudio = true,
+                                                            onSuccess = { audioUrl ->
+                                                                Log.d("ChatScreen", "Audio URL uploaded: $audioUrl")
+                                                                viewModel.sendAudioMessage(matchId, currentUserId, audioUrl)
+                                                                file.delete()
+                                                                audioFile = null
+                                                                isRecordingStopped = false
+                                                            },
+                                                            onError = { error ->
+                                                                Log.e("ChatScreen", "Error uploading audio: $error")
+                                                                coroutineScope.launch {
+                                                                    snackbarHostState.showSnackbar("Lỗi tải âm thanh: $error")
+                                                                }
+                                                                file.delete()
+                                                                audioFile = null
+                                                                isRecordingStopped = false
+                                                            }
+                                                        )
+                                                    }
+                                                } else {
+                                                    coroutineScope.launch {
+                                                        snackbarHostState.showSnackbar("File âm thanh không hợp lệ")
+                                                    }
+                                                    file.delete()
+                                                    audioFile = null
+                                                    isRecordingStopped = false
+                                                }
+                                            } ?: run {
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("Không có file âm thanh để gửi")
+                                                }
+                                                isRecordingStopped = false
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Send,
+                                            contentDescription = "Gửi ghi âm",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            try {
+                                                mediaRecorder?.release()
+                                                mediaRecorder = null
+                                                audioFile?.let { file ->
+                                                    if (file.exists()) {
+                                                        file.delete()
+                                                        Log.d("ChatScreen", "Audio file deleted: ${file.absolutePath}")
+                                                    }
+                                                }
+                                                audioFile = null
+                                                isRecordingStopped = false
+                                                isRecording = false
+                                            } catch (e: Exception) {
+                                                Log.e("ChatScreen", "Error during cancel: ${e.message}")
+                                                coroutineScope.launch {
+                                                    snackbarHostState.showSnackbar("Lỗi khi hủy ghi âm: ${e.message}")
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Hủy ghi âm",
+                                            tint = Color.Red
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            OutlinedTextField(
+                                value = messageText,
+                                onValueChange = { messageText = it },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp),
+                                placeholder = {
+                                    Text("Nhập tin nhắn...", color = Color.Gray.copy(alpha = 0.5f))
+                                },
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = Color.Gray.copy(alpha = 0.5f)
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(
+                                    onSend = {
+                                        if (messageText.isNotBlank()) {
+                                            viewModel.sendMessage(matchId, currentUserId, messageText)
+                                            messageText = ""
+                                            focusManager.clearFocus()
+                                        }
+                                    }
+                                ),
+                                shape = RoundedCornerShape(20.dp),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            FloatingActionButton(
+                                onClick = {
+                                    if (messageText.isNotBlank()) {
+                                        viewModel.sendMessage(matchId, currentUserId, messageText)
+                                        messageText = ""
+                                        focusManager.clearFocus()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(55.dp)
+                                    .padding(4.dp),
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White,
+                                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = "Gửi",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
-                    },
-                    modifier = Modifier
-                        .size(55.dp)
-                        .padding(4.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Gửi",
-                        modifier = Modifier.size(24.dp)
-                    )
+                    }
                 }
             }
         }
-    }
+    )
 
-    // Đặt lại trạng thái khi rời khỏi màn hình chat
     DisposableEffect(matchId) {
         onDispose {
+            mediaRecorder?.release()
+            mediaRecorder = null
+            audioFile?.delete()
+            audioFile = null
             util.AppState.setCurrentChatScreen(null)
         }
     }
 }
-
 
 @Composable
 fun ChatItem(
@@ -405,7 +646,34 @@ fun ChatItem(
     showAvatar: Boolean
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
-    var showFullImage by remember { mutableStateOf(false) } // Trạng thái phóng to ảnh
+    var showFullImage by remember { mutableStateOf(false) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var playbackProgress by remember { mutableStateOf(0f) }
+    var currentPosition by remember { mutableStateOf(0) }
+    var duration by remember { mutableStateOf(0) }
+
+    LaunchedEffect(message) {
+        Log.d(
+            "ChatItemDebug",
+            "Message ID: ${message.messageId}, Type: ${message.messageType}, Text/URL: ${message.text}"
+        )
+    }
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying && mediaPlayer != null) {
+            while (isPlaying && mediaPlayer != null) {
+                try {
+                    currentPosition = mediaPlayer!!.currentPosition
+                    duration = mediaPlayer!!.duration
+                    playbackProgress = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                } catch (e: Exception) {
+                    Log.e("ChatItemDebug", "Error updating playback progress: ${e.message}")
+                }
+                delay(100)
+            }
+        }
+    }
 
     if (message.senderId == "system") {
         Row(
@@ -485,79 +753,196 @@ fun ChatItem(
                         .wrapContentWidth()
                         .widthIn(max = 300.dp)
                 ) {
-                    if (message.messageType == "image") {
-                        // Hiển thị hình ảnh mà không có viền như bong bóng chat
-                        Box(
-                            modifier = Modifier
-                                .widthIn(max = 340.dp)
-                                .heightIn(max = 370.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { showFullImage = true }
-                        ) {
-                            AsyncImage(
-                                model = message.text,
-                                contentDescription = "Hình ảnh",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                placeholder = painterResource(R.drawable.ic_error),
-                                error = painterResource(R.drawable.ic_error)
-                            )
-                        }
-                    } else {
-                        // Bong bóng chat cho văn bản
-                        Column(
-                            modifier = Modifier
-                                .background(
-                                    color = if (isSentByCurrentUser)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                                    else Color(0xFFF1F1F1),
-                                    shape = shape
+                    when (message.messageType) {
+                        "image" -> {
+                            if (message.text.isNotEmpty() && message.text.startsWith("http")) {
+                                Box(
+                                    modifier = Modifier
+                                        .widthIn(max = 340.dp)
+                                        .heightIn(max = 370.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { showFullImage = true }
+                                ) {
+                                    AsyncImage(
+                                        model = message.text,
+                                        contentDescription = "Hình ảnh",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(R.drawable.ic_error),
+                                        error = painterResource(R.drawable.ic_error)
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Lỗi: URL ảnh không hợp lệ",
+                                    color = Color.Red,
+                                    fontSize = 12.sp
                                 )
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = message.text,
-                                color = if (isSentByCurrentUser) Color.White else Color.Black,
-                                fontSize = 15.sp,
-                                maxLines = 10,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.wrapContentWidth()
-                            )
+                            }
+                        }
+
+                        "audio" -> {
+                            if (message.text.isNotEmpty() && message.text.startsWith("http")) {
+                                Column(
+                                    modifier = Modifier
+                                        .background(
+                                            color = if (isSentByCurrentUser)
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                            else Color(0xFFF1F1F1),
+                                            shape = shape
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.widthIn(max = 250.dp)
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                if (isPlaying) {
+                                                    mediaPlayer?.pause()
+                                                    isPlaying = false
+                                                } else {
+                                                    if (mediaPlayer == null) {
+                                                        mediaPlayer = MediaPlayer().apply {
+                                                            setDataSource(message.text)
+                                                            setOnPreparedListener {
+                                                                duration = it.duration
+                                                                start()
+                                                                isPlaying = true
+                                                            }
+                                                            setOnCompletionListener {
+                                                                release()
+                                                                mediaPlayer = null
+                                                                isPlaying = false
+                                                                playbackProgress = 0f
+                                                                currentPosition = 0
+                                                            }
+                                                            setOnErrorListener { _, what, extra ->
+                                                                Log.e("ChatItemDebug", "MediaPlayer error: what=$what, extra=$extra")
+                                                                release()
+                                                                mediaPlayer = null
+                                                                isPlaying = false
+                                                                playbackProgress = 0f
+                                                                currentPosition = 0
+                                                                true
+                                                            }
+                                                            prepareAsync()
+                                                        }
+                                                    } else {
+                                                        mediaPlayer?.start()
+                                                        isPlaying = true
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = if (isPlaying) "Tạm dừng" else "Phát",
+                                                tint = if (isSentByCurrentUser) Color.White else Color.Black
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        LinearProgressIndicator(
+                                            progress = playbackProgress,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(4.dp),
+                                            color = if (isSentByCurrentUser) Color.White else MaterialTheme.colorScheme.primary,
+                                            trackColor = Color.Gray.copy(alpha = 0.3f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "${formatTime(currentPosition)} / ${formatTime(duration)}",
+                                            color = if (isSentByCurrentUser) Color.White else Color.Black,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = "Lỗi: URL âm thanh không hợp lệ",
+                                    color = Color.Red,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        else -> {
+                            Column(
+                                modifier = Modifier
+                                    .background(
+                                        color = if (isSentByCurrentUser)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                        else Color(0xFFF1F1F1),
+                                        shape = shape
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = message.text,
+                                    color = if (isSentByCurrentUser) Color.White else Color.Black,
+                                    fontSize = 15.sp,
+                                    maxLines = 10,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.wrapContentWidth()
+                                )
+                            }
                         }
                     }
+                    Text(
+                        text = formatMessageTime(message.timestamp),
+//                        color = if (isSentByCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                    )
                 }
                 if (isSentByCurrentUser) {
                     Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         }
-        // Hiển thị ảnh toàn màn hình khi nhấp
-
-        if (showFullImage) {
-            Dialog(
-                onDismissRequest = { showFullImage = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false) // Cho phép full màn hình
+    }
+    if (showFullImage) {
+        Dialog(
+            onDismissRequest = { showFullImage = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x3EC5C5C5))
+                    .clickable { showFullImage = false },
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                AsyncImage(
+                    model = message.text,
+                    contentDescription = "Hình ảnh toàn màn hình",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0x3EC5C5C5)) // Nền tối toàn màn hình
-                        .clickable { showFullImage = false }, // Bấm nền ngoài để tắt
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = message.text,
-                        contentDescription = "Hình ảnh toàn màn hình",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clickable { showFullImage = false },
-                        contentScale = ContentScale.Fit
-                    )
-                }
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clickable { showFullImage = false },
+                    contentScale = ContentScale.Fit
+                )
             }
         }
     }
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.release()
+            mediaPlayer = null
+            isPlaying = false
+            playbackProgress = 0f
+            currentPosition = 0
+        }
+    }
+}
+
+// Hàm định dạng thời gian từ mili giây sang định dạng mm:ss
+fun formatTime(millis: Int): String {
+    val seconds = millis / 1000
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return String.format("%d:%02d", minutes, remainingSeconds)
 }
 
 

@@ -337,12 +337,17 @@ class ChatListViewModel(
                                 val latestMessage = chatDao.getLatestMessage(matchId, ownerId)
                                 if (latestMessage != null) {
                                     val userData = getUserData(otherUserId, context)
+                                    val latestMessageText = when (latestMessage.messageType) {
+                                        "image" -> "Đã gửi một hình ảnh"
+                                        "audio" -> "Đã gửi một tin nhắn âm thanh"
+                                        else -> latestMessage.text
+                                    }
                                     val chatListItem = CachedChatListItem(
                                         matchId = matchId,
                                         userId = otherUserId,
                                         name = userData.name,
                                         avatarUrl = userData.avatarUrl ?: "",
-                                        latestMessage = if (latestMessage.messageType == "image") "Đã gửi một hình ảnh" else latestMessage.text,
+                                        latestMessage = latestMessageText,
                                         timestamp = latestMessage.timestamp,
                                         isSynced = true,
                                         ownerId = ownerId
@@ -362,6 +367,32 @@ class ChatListViewModel(
                 Log.e("ChatListViewModel", "Lỗi khi đồng bộ: ${error.message}")
             }
         })
+    }
+
+    fun sendAudioMessage(matchId: String, senderId: String, audioUrl: String) {
+        val messageId = database.getReference("matches/$matchId/chat").push().key ?: return
+        currentUserId?.let { ownerId ->
+            val message = CachedMessage(
+                messageId = messageId,
+                matchId = matchId,
+                senderId = senderId,
+                text = audioUrl,
+                timestamp = System.currentTimeMillis(),
+                isSynced = false,
+                ownerId = ownerId,
+                messageType = "audio"
+            )
+
+            viewModelScope.launch {
+                chatDao.insertMessage(message)
+                updateChatListItem(matchId, "Đã gửi một tin nhắn âm thanh", message.timestamp)
+                if (isNetworkAvailable) {
+                    syncMessageToFirebaseWithRetry(message)
+                }
+                val intent = Intent(context, MessageSyncService::class.java)
+                context.startService(intent)
+            }
+        }
     }
 
     public suspend fun getOtherUserId(matchId: String): String? {

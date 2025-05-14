@@ -101,6 +101,87 @@ class UserInputViewModel : ViewModel() {
             .dispatch()
     }
 
+    fun uploadFileToCloudinary(
+        filePath: String,
+        isAudio: Boolean,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val file = File(filePath)
+        if (!file.exists() || file.length() == 0L) {
+            onError("File không tồn tại hoặc rỗng")
+            return
+        }
+
+        isLoading.value = true
+        Log.d("UserInputViewModel", "Bắt đầu tải file lên Cloudinary: $filePath (isAudio: $isAudio)")
+
+        // Tạo tên file duy nhất để tránh xung đột
+        val fileName = file.nameWithoutExtension
+        val uniqueFileName = generateUniqueFileName(fileName)
+        val resourceType = if (isAudio) "video" else "image" // Cloudinary sử dụng "video" cho âm thanh
+
+        try {
+            MediaManager.get().upload(filePath)
+                .unsigned(CloudinaryHelper.getUploadPreset())
+                .option("public_id", uniqueFileName)
+                .option("resource_type", resourceType) // Chỉ định loại tài nguyên
+                .callback(object : UploadCallback {
+                    override fun onStart(requestId: String) {
+                        Log.d("UserInputViewModel", "Bắt đầu tải file: $uniqueFileName")
+                    }
+
+                    override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {
+                        val progress = bytes.toFloat() / totalBytes
+                        Log.d("UserInputViewModel", "Tiến trình tải: $progress")
+                    }
+
+                    override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                        val cloudinaryUrl = resultData["secure_url"]?.toString()
+                        if (cloudinaryUrl.isNullOrEmpty()) {
+                            Log.e("UserInputViewModel", "URL trả về rỗng hoặc không hợp lệ")
+                            onError("Không nhận được URL từ Cloudinary")
+                        } else {
+                            Log.d("UserInputViewModel", "Tải lên thành công, URL: $cloudinaryUrl")
+                            if (!isAudio) {
+                                addPhotoUrl(cloudinaryUrl) // Chỉ thêm URL ảnh vào photoUrls
+                            }
+                            onSuccess(cloudinaryUrl)
+                        }
+                        isLoading.value = false
+                    }
+
+                    override fun onError(requestId: String, error: ErrorInfo) {
+                        val errorMessage = "Lỗi khi tải file: ${error.description}"
+                        Log.e("UserInputViewModel", errorMessage)
+                        onError(errorMessage)
+                        isLoading.value = false
+                    }
+
+                    override fun onReschedule(requestId: String, error: ErrorInfo) {
+                        Log.w("UserInputViewModel", "Tải lên được lên lịch lại: ${error.description}")
+                    }
+                })
+                .dispatch()
+        } catch (e: Exception) {
+            val errorMessage = "Lỗi xử lý file: ${e.message}"
+            Log.e("UserInputViewModel", errorMessage, e)
+            onError(errorMessage)
+            isLoading.value = false
+        }
+    }
+
+    // Hàm tạo tên file duy nhất
+    private fun generateUniqueFileName(baseName: String): String {
+        var newFileName = baseName
+        var counter = 1
+        while (photoUrls.value.any { it.contains("/$newFileName.") }) {
+            newFileName = "$baseName$counter"
+            counter++
+        }
+        return newFileName
+    }
+
     fun isAllDataFilled(): Boolean {
         return fullName.value.isNotEmpty() &&
                 birthMonth.value.isNotEmpty() &&

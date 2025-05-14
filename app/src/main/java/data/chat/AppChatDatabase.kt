@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 
 // AppChatDatabase.kt
-@Database(entities = [CachedChatListItem::class, CachedMessage::class], version = 6) // Tăng version lên 2
+@Database(entities = [CachedChatListItem::class, CachedMessage::class], version = 7) // Tăng version lên 2
 abstract class AppChatDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
 
