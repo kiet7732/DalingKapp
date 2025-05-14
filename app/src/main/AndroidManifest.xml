@@ -20,6 +20,11 @@
         android:theme="@style/Theme.DalingK"
         tools:targetApi="31">
         <activity
+            android:name=".components.detailUser.OtherUserProfileScreen"
+            android:exported="false"
+            android:label="@string/title_activity_other_user_profile_screen"
+            android:theme="@style/Theme.DalingK" />
+        <activity
             android:name=".auth.ForgotPasswordScreen"
             android:exported="false"
             android:label="@string/title_activity_forgot_password_screen"
@@ -39,7 +44,6 @@
             android:exported="false"
             android:label="@string/title_activity_location_ui"
             android:theme="@style/Theme.DalingK" />
-
         <activity
             android:name=".components.detailUser.DisplayPhotos"
             android:exported="false"
@@ -75,14 +79,11 @@
             android:exported="false"
             android:label="@string/title_activity_register"
             android:theme="@style/Theme.DalingK" />
-
-
         <activity
             android:name=".components.TopBar"
             android:exported="false"
             android:label="@string/title_activity_top_bar"
             android:theme="@style/Theme.DalingK" />
-
         <activity
             android:name=".screens.IntroUI"
             android:exported="false"
@@ -113,8 +114,7 @@
         <service
             android:name="data.chat.services.MessageSyncService"
             android:enabled="true"
-            android:exported="false"/>
-
+            android:exported="false" />
     </application>
 
 </manifest>

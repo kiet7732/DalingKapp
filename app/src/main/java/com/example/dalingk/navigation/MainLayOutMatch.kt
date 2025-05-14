@@ -134,7 +134,7 @@ fun MainScreen(navController: NavController, context: Context, viewModel: AuthVi
         ) {
             when (selectedIndex) {
                 0 -> HomeMatch(profiles = profiles, context, viewModel)
-                1 -> InterestsScreenUI()
+                1 -> InterestsScreenUI(navController = navController, viewModel)
                 2 -> ChatListUI(navController = navController)
                 3 -> AvatarDetail(navController = navController, context)
             }

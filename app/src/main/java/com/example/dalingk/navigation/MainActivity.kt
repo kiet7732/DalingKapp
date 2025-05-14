@@ -285,6 +285,9 @@ fun AppNavigation() {
                 composable(Routes.ChatList) {
                     ChatListUI(navController = navController)
                 }
+//                composable(Routes.ChatList) {
+//                    OtherUserProfileScreen(navController = navController, context)
+//                }
                 composable(
                     route = "chat/{matchId}",
                     arguments = listOf(navArgument("matchId") { type = NavType.StringType })

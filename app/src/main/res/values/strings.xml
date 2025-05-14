@@ -98,6 +98,14 @@
     <string name="textfind_6">Travel</string>
     <string name="textfind_7">Film festival</string>
     <string name="textfind_8">Love sports</string>
+    <string name="textfind_9">🎉 Congratulations!</string>
+    <string name="textfind_10">You’ve found your match. Start chatting now!</string>
+    <string name="textfind_11">Start Chatting</string>
+    <string name="textfind_12">Quick Chat</string>
+    <string name="textfind_13">Searching for someone to chat with...</string>
+    <string name="textfind_14">Cancel</string>
+    <string name="textfind_15">Join the queue to chat randomly with a compatible person!</string>
+    <string name="textfind_16">Join Queue</string>
 
     <!-- Find match -->
     <string name="textchat_1">Chat</string>
@@ -121,5 +129,6 @@
     <string name="textdetailuser_11">Cannot change gender</string>
     <string name="textdetailuser_12">No hobbies yet. Tap the edit button to add.</string>
     <string name="textdetailuser_13">Saved successfully</string>
+    <string name="title_activity_other_user_profile_screen">OtherUserProfileScreen</string>
 
 </resources>

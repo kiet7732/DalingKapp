@@ -105,6 +105,14 @@
     <string name="textfind_6">Du lịch</string>
     <string name="textfind_7">Hội mê Phím</string>
     <string name="textfind_8">Yêu thể thao</string>
+    <string name="textfind_9">🎉 Chúc mừng!</string>
+    <string name="textfind_10">Bạn đã tìm thấy người ấy. Hãy bắt đầu cuộc trò chuyện ngay!</string>
+    <string name="textfind_11">Bắt đầu trò chuyện</string>
+    <string name="textfind_12">Trò chuyện nhanh</string>
+    <string name="textfind_13">Đang tìm người để trò chuyện...</string>
+    <string name="textfind_14">Hủy</string>
+    <string name="textfind_15">Tham gia hàng đợi để trò chuyện ngẫu nhiên với một người phù hợp!</string>
+    <string name="textfind_16">Tham gia hàng đợi</string>
 
     <!-- Find match -->
     <string name="textchat_1">Tin nhắn</string>
@@ -128,5 +136,9 @@
     <string name="textdetailuser_11">Không thể đổi giới tính</string>
     <string name="textdetailuser_12">Chưa có sở thích nào. Nhấn vào nút chỉnh sửa để thêm.</string>
     <string name="textdetailuser_13">Lưu thành công</string>
+    <string name="title_activity_other_user_profile_screen">OtherUserProfileScreen</string>
+
+
+
 
 </resources>
