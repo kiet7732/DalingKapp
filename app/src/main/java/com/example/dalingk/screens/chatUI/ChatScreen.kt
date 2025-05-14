@@ -45,6 +45,8 @@ import com.example.dalingk.screens.ui.theme.DalingKTheme
 import data.chat.viewmodel.ChatListViewModel
 
 import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
@@ -65,11 +67,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
 import com.example.dalingk.navigation.Routes
@@ -79,6 +86,8 @@ import data.chat.AppChatDatabase
 import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
+import data.viewmodel.UserInputViewModel
+import util.ImageUtils
 
 class ChatScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,13 +128,14 @@ fun ChatScreen(
     val context = LocalContext.current
     val currentUserId = UserPreferences.getUserId(context) ?: return
     val coroutineScope = rememberCoroutineScope()
+    val userInputViewModel = UserInputViewModel()
 
     // Đánh dấu tất cả tin nhắn trong matchId là đã thông báo khi mở ChatScreen
     LaunchedEffect(matchId) {
         coroutineScope.launch {
             AppChatDatabase.getDatabase(context).chatDao().markAllMessagesAsNotified(matchId)
             viewModel.loadMessages(matchId)
-            util.AppState.setCurrentChatScreen(matchId) // Cập nhật trạng thái màn hình chat
+            util.AppState.setCurrentChatScreen(matchId)
         }
     }
 
@@ -153,6 +163,37 @@ fun ChatScreen(
 
     LaunchedEffect(matchId) {
         viewModel.startMessagesListener(matchId)
+    }
+
+    // Trình chọn ảnh
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                try {
+                    // Nén ảnh
+                    val compressedFile =
+                        ImageUtils.compressImageToFile(context, it, maxSizeKB = 150)
+                    // Tải ảnh lên Cloudinary
+                    userInputViewModel.uploadPhotoToCloudinary(
+                        filePath = compressedFile.absolutePath,
+                        onSuccess = { imageUrl ->
+                            // Gửi URL ảnh dưới dạng tin nhắn
+                            viewModel.sendImageMessage(matchId, currentUserId, imageUrl)
+                        },
+                        onError = { error ->
+                            // Hiển thị lỗi nếu có
+                            coroutineScope.launch {
+                                // Có thể thêm Snackbar để thông báo lỗi
+                            }
+                        }
+                    )
+                } catch (e: Exception) {
+                    // Xử lý lỗi
+                }
+            }
+        }
     }
 
     Column(
@@ -278,6 +319,21 @@ fun ChatScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Nút chọn ảnh
+                IconButton(
+                    onClick = {
+                        pickImageLauncher.launch("image/*")
+                    },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(end = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AttachFile,
+                        contentDescription = "Chọn ảnh",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
                 OutlinedTextField(
                     value = messageText,
                     onValueChange = { messageText = it },
@@ -340,6 +396,7 @@ fun ChatScreen(
     }
 }
 
+
 @Composable
 fun ChatItem(
     message: CachedMessage,
@@ -348,6 +405,7 @@ fun ChatItem(
     showAvatar: Boolean
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) } // Trạng thái phóng to ảnh
 
     if (message.senderId == "system") {
         Row(
@@ -426,37 +484,76 @@ fun ChatItem(
                     modifier = Modifier
                         .wrapContentWidth()
                         .widthIn(max = 300.dp)
-                        .background(
-                            color = if (isSentByCurrentUser) MaterialTheme.colorScheme.primary.copy(
-                                alpha = 0.9f
-                            ) else Color(0xFFF1F1F1),
-                            shape = shape
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = message.text,
-                        color = if (isSentByCurrentUser) Color.White else Color.Black,
-                        fontSize = 15.sp,
-                        maxLines = 10,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.wrapContentWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = formatMessageTime(message.timestamp),
-                        color = if (isSentByCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray.copy(
-                            alpha = 0.7f
-                        ),
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.End)
-                    )
+                    if (message.messageType == "image") {
+                        // Hiển thị hình ảnh mà không có viền như bong bóng chat
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 340.dp)
+                                .heightIn(max = 370.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { showFullImage = true }
+                        ) {
+                            AsyncImage(
+                                model = message.text,
+                                contentDescription = "Hình ảnh",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.ic_error),
+                                error = painterResource(R.drawable.ic_error)
+                            )
+                        }
+                    } else {
+                        // Bong bóng chat cho văn bản
+                        Column(
+                            modifier = Modifier
+                                .background(
+                                    color = if (isSentByCurrentUser)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                    else Color(0xFFF1F1F1),
+                                    shape = shape
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = message.text,
+                                color = if (isSentByCurrentUser) Color.White else Color.Black,
+                                fontSize = 15.sp,
+                                maxLines = 10,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.wrapContentWidth()
+                            )
+                        }
+                    }
                 }
                 if (isSentByCurrentUser) {
                     Spacer(modifier = Modifier.width(8.dp))
+                }
+            }
+        }
+        // Hiển thị ảnh toàn màn hình khi nhấp
+
+        if (showFullImage) {
+            Dialog(
+                onDismissRequest = { showFullImage = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false) // Cho phép full màn hình
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x3EC5C5C5)) // Nền tối toàn màn hình
+                        .clickable { showFullImage = false }, // Bấm nền ngoài để tắt
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = message.text,
+                        contentDescription = "Hình ảnh toàn màn hình",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clickable { showFullImage = false },
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }

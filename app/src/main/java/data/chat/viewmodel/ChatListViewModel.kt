@@ -117,7 +117,8 @@ class ChatListViewModel(
                         mapOf(
                             "senderId" to message.senderId,
                             "text" to message.text,
-                            "timestamp" to message.timestamp
+                            "timestamp" to message.timestamp,
+                            "messageType" to message.messageType // Thêm messageType
                         )
                     ).await()
                 chatDao.markMessageAsSynced(message.messageId)
@@ -147,6 +148,33 @@ class ChatListViewModel(
         isNetworkAvailable = context.isNetworkAvailable()
     }
 
+    fun sendImageMessage(matchId: String, senderId: String, imageUrl: String) {
+        val messageId = database.getReference("matches/$matchId/chat").push().key ?: return
+        currentUserId?.let { ownerId ->
+            val message = CachedMessage(
+                messageId = messageId,
+                matchId = matchId,
+                senderId = senderId,
+                text = imageUrl, // Lưu URL ảnh vào text
+                timestamp = System.currentTimeMillis(),
+                isSynced = false,
+                ownerId = ownerId,
+                messageType = "image" // Đặt messageType là "image"
+            )
+
+            viewModelScope.launch {
+                chatDao.insertMessage(message)
+                updateChatListItem(matchId, "Đã gửi một hình ảnh", message.timestamp)
+                if (isNetworkAvailable) {
+                    syncMessageToFirebaseWithRetry(message)
+                }
+                // Khởi động Service để đồng bộ
+                val intent = Intent(context, MessageSyncService::class.java)
+                context.startService(intent)
+            }
+        }
+    }
+
     private fun loadChatListFromRoom() {
         viewModelScope.launch {
             currentUserId?.let { ownerId ->
@@ -166,26 +194,18 @@ class ChatListViewModel(
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 viewModelScope.launch {
-                    val messageId = snapshot.key ?: run {
-                       return@launch
-                    }
-                    val senderId = snapshot.child("senderId").value as? String ?: run {
-                       return@launch
-                    }
-                    val text = snapshot.child("text").value as? String ?: run {
-                        return@launch
-                    }
-                    val timestamp = snapshot.child("timestamp").value as? Long ?: run {
-                       return@launch
-                    }
+                    val messageId = snapshot.key ?: return@launch
+                    val senderId = snapshot.child("senderId").value as? String ?: return@launch
+                    val text = snapshot.child("text").value as? String ?: return@launch
+                    val timestamp = snapshot.child("timestamp").value as? Long ?: return@launch
+                    val messageType = snapshot.child("messageType").value as? String ?: "text"
 
                     // Bỏ qua tin nhắn cũ
                     val currentTime = System.currentTimeMillis()
                     if (timestamp < currentTime - 10_000) {
-                      chatDao.markMessageAsNotified(messageId)
+                        chatDao.markMessageAsNotified(messageId)
                         return@launch
                     }
-
 
                     val message = CachedMessage(
                         messageId = messageId,
@@ -195,7 +215,8 @@ class ChatListViewModel(
                         timestamp = timestamp,
                         isSynced = true,
                         ownerId = currentUserId ?: "",
-                        isNotified = false
+                        isNotified = false,
+                        messageType = messageType
                     )
 
                     // Lưu tin nhắn vào Room
@@ -215,13 +236,10 @@ class ChatListViewModel(
 
                     if (shouldNotify) {
                         if (isAppInForeground) {
-//                            // Hiển thị Snackbar khi ứng dụng ở foreground
                             val userData = getUserData(senderId, context)
-                            _notificationMessage.value = "${userData.name}: $text"
-//                            chatDao.markMessageAsNotified(messageId)
+                            _notificationMessage.value = "${userData.name}: ${if (messageType == "image") "Đã gửi một hình ảnh" else text}"
                             Log.d("ChatListViewModel", "Snackbar notification sent for message: $messageId")
                         } else {
-                            // Gửi thông báo hệ thống khi ứng dụng chạy nền
                             val intent = Intent(context, MessageSyncService::class.java).apply {
                                 putExtra("NOTIFICATION_MESSAGE", message)
                             }
@@ -277,23 +295,6 @@ class ChatListViewModel(
         }
     }
 
-    private fun syncMessageToFirebase(message: CachedMessage) {
-        val messageRef = database.getReference("matches/${message.matchId}/chat/${message.messageId}")
-        messageRef.setValue(
-            mapOf(
-                "senderId" to message.senderId,
-                "text" to message.text,
-                "timestamp" to message.timestamp
-            )
-        ).addOnSuccessListener {
-            viewModelScope.launch {
-                chatDao.markMessageAsSynced(message.messageId)
-                chatDao.markChatListItemAsSynced(message.matchId)
-            }
-        }.addOnFailureListener { e ->
-            Log.e("ChatListViewModel", "Lỗi đồng bộ tin nhắn: ${e.message}")
-        }
-    }
 
     private fun syncWithFirebase() {
         database.getReference("matches").addValueEventListener(object : ValueEventListener {
@@ -307,7 +308,6 @@ class ChatListViewModel(
 
                         if (user1Id == null || user2Id == null) return@forEach
 
-                        // Chỉ xử lý nếu currentUserId là một phần của match
                         if (user1Id != currentUserId && user2Id != currentUserId) return@forEach
 
                         val otherUserId = if (user1Id == currentUserId) user2Id else user1Id
@@ -319,6 +319,7 @@ class ChatListViewModel(
                                     val senderId = messageSnapshot.child("senderId").value as? String ?: return@forEach
                                     val text = messageSnapshot.child("text").value as? String ?: return@forEach
                                     val timestamp = messageSnapshot.child("timestamp").value as? Long ?: return@forEach
+                                    val messageType = messageSnapshot.child("messageType").value as? String ?: "text"
 
                                     val message = CachedMessage(
                                         messageId = messageId,
@@ -327,7 +328,8 @@ class ChatListViewModel(
                                         text = text,
                                         timestamp = timestamp,
                                         isSynced = true,
-                                        ownerId = ownerId
+                                        ownerId = ownerId,
+                                        messageType = messageType
                                     )
                                     chatDao.insertMessage(message)
                                 }
@@ -340,7 +342,7 @@ class ChatListViewModel(
                                         userId = otherUserId,
                                         name = userData.name,
                                         avatarUrl = userData.avatarUrl ?: "",
-                                        latestMessage = latestMessage.text,
+                                        latestMessage = if (latestMessage.messageType == "image") "Đã gửi một hình ảnh" else latestMessage.text,
                                         timestamp = latestMessage.timestamp,
                                         isSynced = true,
                                         ownerId = ownerId

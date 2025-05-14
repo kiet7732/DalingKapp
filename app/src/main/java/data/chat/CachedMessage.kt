@@ -11,11 +11,12 @@ data class CachedMessage(
     val messageId: String,
     val matchId: String,
     val senderId: String,
-    val text: String,
+    val text: String, // Sẽ chứa văn bản hoặc URL ảnh
     val timestamp: Long,
     val isSynced: Boolean = false,
     val ownerId: String,
-    val isNotified: Boolean = false // Thêm trường để theo dõi trạng thái thông báo
+    val isNotified: Boolean = false,
+    val messageType: String = "text" // Thêm trường messageType: "text" hoặc "image"
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         messageId = parcel.readString() ?: "",
@@ -25,7 +26,8 @@ data class CachedMessage(
         timestamp = parcel.readLong(),
         isSynced = parcel.readByte() != 0.toByte(),
         ownerId = parcel.readString() ?: "",
-        isNotified = parcel.readByte() != 0.toByte()
+        isNotified = parcel.readByte() != 0.toByte(),
+        messageType = parcel.readString() ?: "text"
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -37,6 +39,7 @@ data class CachedMessage(
         parcel.writeByte(if (isSynced) 1 else 0)
         parcel.writeString(ownerId)
         parcel.writeByte(if (isNotified) 1 else 0)
+        parcel.writeString(messageType)
     }
 
     override fun describeContents(): Int = 0
