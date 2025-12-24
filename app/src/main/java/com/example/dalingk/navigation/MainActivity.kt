@@ -75,6 +75,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 //import components.profiles
@@ -170,7 +171,7 @@ fun AppNavigation() {
     var startDestination by remember { mutableStateOf(Routes.TrailerScreen) }
     var isChecking by remember { mutableStateOf(true) }
 
-    // Sử dụng NetworkCallback để lắng nghe thay đổi mạng thay vì dùng BroadcastReceiver
+    // Sử dụng NetworkCallback để lắng nghe thay đổi mạng
     DisposableEffect(context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -196,44 +197,47 @@ fun AppNavigation() {
 
     LaunchedEffect(Unit) {
         Log.d("AppNavigation", "Bắt đầu kiểm tra trạng thái người dùng")
-        authViewModel.checkCurrentUserIdExists(
-            onResult = { isLoggedIn ->
-                if (isLoggedIn) {
-                    authViewModel.checkCurrentUserDataExists(
-                        onResult = { route ->
-                            startDestination = route
-                            isChecking = false
-                        },
-                        onError = { error ->
-                            Log.e("AppNavigation", "Lỗi kiểm tra dữ liệu: $error")
-                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                            startDestination = Routes.TrailerScreen
-                            isChecking = false
-                        }
-                    )
-                } else {
-                    authViewModel.checkCurrentUserDataExists(
-                        onResult = { route ->
-                            startDestination = route
-                            isChecking = false
-                        },
-                        onError = { error ->
-                            Log.e("AppNavigation", "Lỗi kiểm tra dữ liệu: $error")
-                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                            startDestination = Routes.TrailerScreen
-                            isChecking = false
-                        }
-                    )
+        withContext(Dispatchers.IO) { // Chạy kiểm tra trên luồng nền
+            authViewModel.checkCurrentUserIdExists(
+                onResult = { isLoggedIn ->
+                    if (isLoggedIn) {
+                        authViewModel.checkCurrentUserDataExists(
+                            onResult = { route ->
+                                startDestination = route
+                                isChecking = false
+                            },
+                            onError = { error ->
+                                Log.e("AppNavigation", "Lỗi kiểm tra dữ liệu: $error")
+                                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                startDestination = Routes.TrailerScreen
+                                isChecking = false
+                            }
+                        )
+                    } else {
+                        authViewModel.checkCurrentUserDataExists(
+                            onResult = { route ->
+                                startDestination = route
+                                isChecking = false
+                            },
+                            onError = { error ->
+                                Log.e("AppNavigation", "Lỗi kiểm tra dữ liệu: $error")
+                                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                startDestination = Routes.TrailerScreen
+                                isChecking = false
+                            }
+                        )
+                    }
+                },
+                onError = { error ->
+                    Log.e("AppNavigation", "Lỗi kiểm tra Authentication: $error")
+                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                    startDestination = Routes.TrailerScreen
+                    isChecking = false
                 }
-            },
-            onError = { error ->
-                Log.e("AppNavigation", "Lỗi kiểm tra Authentication: $error")
-                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                startDestination = Routes.TrailerScreen
-                isChecking = false
-            }
-        )
+            )
+        }
     }
+
     if (!isChecking) {
         Column(
             modifier = Modifier
@@ -285,9 +289,6 @@ fun AppNavigation() {
                 composable(Routes.ChatList) {
                     ChatListUI(navController = navController)
                 }
-//                composable(Routes.ChatList) {
-//                    OtherUserProfileScreen(navController = navController, context)
-//                }
                 composable(
                     route = "chat/{matchId}",
                     arguments = listOf(navArgument("matchId") { type = NavType.StringType })

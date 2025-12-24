@@ -9,6 +9,8 @@ import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
 import data.model.CloudinaryHelper
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 import java.io.File
 import java.time.LocalDate
@@ -103,7 +105,7 @@ class UserInputViewModel : ViewModel() {
 
     fun uploadFileToCloudinary(
         filePath: String,
-        isAudio: Boolean,
+        fileType: FileType,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -114,61 +116,116 @@ class UserInputViewModel : ViewModel() {
         }
 
         isLoading.value = true
-        Log.d("UserInputViewModel", "Bắt đầu tải file lên Cloudinary: $filePath (isAudio: $isAudio)")
+        Log.d("UserInputViewModel", "Starting upload for file: $filePath (fileType: $fileType)")
 
-        // Tạo tên file duy nhất để tránh xung đột
+        // Xác thực định dạng tệp
+        val fileExtension = file.extension.lowercase()
+        val validExtensions = when (fileType) {
+            FileType.IMAGE -> listOf("jpg", "jpeg", "png", "gif")
+            FileType.VIDEO -> listOf("mp4", "webm")
+            FileType.AUDIO -> listOf("m4a", "mp3")
+        }
+        if (fileExtension !in validExtensions) {
+            onError("Định dạng tệp không được hỗ trợ: $fileExtension")
+            isLoading.value = false
+            return
+        }
+
+        // Đặt resourceType dựa trên fileType
+        val resourceType = when (fileType) {
+            FileType.IMAGE -> "image"
+            FileType.VIDEO, FileType.AUDIO -> "video"
+        }
+
+        // Xác thực kích thước tệp
+        val maxSizeMB = when (fileType) {
+            FileType.IMAGE -> 10 // Hình ảnh: 10MB
+            FileType.VIDEO -> 100 // Video: 100MB (Cloudinary free tier)
+            FileType.AUDIO -> 10 // Audio: 10MB
+        }
+        if (file.length() > maxSizeMB * 1024 * 1024) {
+            onError("File vượt quá giới hạn $maxSizeMB MB")
+            isLoading.value = false
+            return
+        }
+
         val fileName = file.nameWithoutExtension
         val uniqueFileName = generateUniqueFileName(fileName)
-        val resourceType = if (isAudio) "video" else "image" // Cloudinary sử dụng "video" cho âm thanh
 
-        try {
-            MediaManager.get().upload(filePath)
-                .unsigned(CloudinaryHelper.getUploadPreset())
-                .option("public_id", uniqueFileName)
-                .option("resource_type", resourceType) // Chỉ định loại tài nguyên
-                .callback(object : UploadCallback {
-                    override fun onStart(requestId: String) {
-                        Log.d("UserInputViewModel", "Bắt đầu tải file: $uniqueFileName")
-                    }
-
-                    override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {
-                        val progress = bytes.toFloat() / totalBytes
-                        Log.d("UserInputViewModel", "Tiến trình tải: $progress")
-                    }
-
-                    override fun onSuccess(requestId: String, resultData: Map<*, *>) {
-                        val cloudinaryUrl = resultData["secure_url"]?.toString()
-                        if (cloudinaryUrl.isNullOrEmpty()) {
-                            Log.e("UserInputViewModel", "URL trả về rỗng hoặc không hợp lệ")
-                            onError("Không nhận được URL từ Cloudinary")
-                        } else {
-                            Log.d("UserInputViewModel", "Tải lên thành công, URL: $cloudinaryUrl")
-                            if (!isAudio) {
-                                addPhotoUrl(cloudinaryUrl) // Chỉ thêm URL ảnh vào photoUrls
-                            }
-                            onSuccess(cloudinaryUrl)
+        // Retry logic
+        var retryCount = 0
+        val maxRetries = 3
+        fun attemptUpload() {
+            try {
+                MediaManager.get().upload(filePath)
+                    .unsigned(CloudinaryHelper.getUploadPreset())
+                    .option("public_id", uniqueFileName)
+                    .option("resource_type", resourceType)
+                    .callback(object : UploadCallback {
+                        override fun onStart(requestId: String) {
+                            Log.d("UserInputViewModel", "Upload started: $uniqueFileName ($resourceType)")
                         }
-                        isLoading.value = false
-                    }
 
-                    override fun onError(requestId: String, error: ErrorInfo) {
-                        val errorMessage = "Lỗi khi tải file: ${error.description}"
-                        Log.e("UserInputViewModel", errorMessage)
-                        onError(errorMessage)
-                        isLoading.value = false
-                    }
+                        override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {
+                            val progress = bytes.toFloat() / totalBytes
+                            Log.d("UserInputViewModel", "Upload progress: $progress")
+                        }
 
-                    override fun onReschedule(requestId: String, error: ErrorInfo) {
-                        Log.w("UserInputViewModel", "Tải lên được lên lịch lại: ${error.description}")
-                    }
-                })
-                .dispatch()
-        } catch (e: Exception) {
-            val errorMessage = "Lỗi xử lý file: ${e.message}"
-            Log.e("UserInputViewModel", errorMessage, e)
-            onError(errorMessage)
-            isLoading.value = false
+                        override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                            val cloudinaryUrl = resultData["secure_url"]?.toString()
+                            if (cloudinaryUrl.isNullOrEmpty()) {
+                                Log.e("UserInputViewModel", "Empty or invalid URL returned")
+                                onError("Không nhận được URL từ Cloudinary")
+                            } else {
+                                Log.d("UserInputViewModel", "Upload successful: $cloudinaryUrl")
+                                if (fileType == FileType.IMAGE) {
+                                    addPhotoUrl(cloudinaryUrl)
+                                }
+                                onSuccess(cloudinaryUrl)
+                            }
+                            isLoading.value = false
+                        }
+
+                        override fun onError(requestId: String, error: ErrorInfo) {
+                            val errorMessage = "Upload error: ${error.description}"
+                            Log.e("UserInputViewModel", errorMessage)
+                            if (retryCount < maxRetries) {
+                                retryCount++
+                                Log.d("UserInputViewModel", "Retrying upload ($retryCount/$maxRetries)")
+                                runBlocking { delay(1000L * retryCount) }
+                                attemptUpload()
+                            } else {
+                                onError(errorMessage)
+                                isLoading.value = false
+                            }
+                        }
+
+                        override fun onReschedule(requestId: String, error: ErrorInfo) {
+                            Log.w("UserInputViewModel", "Upload rescheduled: ${error.description}")
+                        }
+                    })
+                    .dispatch()
+            } catch (e: Exception) {
+                val errorMessage = "File processing error: ${e.message}"
+                Log.e("UserInputViewModel", errorMessage, e)
+                if (retryCount < maxRetries) {
+                    retryCount++
+                    Log.d("UserInputViewModel", "Retrying upload ($retryCount/$maxRetries)")
+                    runBlocking { delay(1000L * retryCount) }
+                    attemptUpload()
+                } else {
+                    onError(errorMessage)
+                    isLoading.value = false
+                }
+            }
         }
+
+        attemptUpload()
+    }
+
+    // Enum để xác định loại tệp
+    enum class FileType {
+        IMAGE, VIDEO, AUDIO
     }
 
     // Hàm tạo tên file duy nhất

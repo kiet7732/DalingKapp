@@ -4,9 +4,9 @@ import android.content.Context
 import com.cloudinary.android.MediaManager
 
 object CloudinaryHelper {
-    private const val CLOUD_NAME = "dk0dn25hc"
-    private const val API_KEY = "756142988118212"
-    private const val API_SECRET = "sC-P5fnaYaa_n4jC3DhRu821TZ0"
+    private const val CLOUD_NAME = ""
+    private const val API_KEY = ""
+    private const val API_SECRET = "sC-"
     private const val UPLOAD_PRESET = "DalingKApp"
 
     private var isInitialized = false // Biến để theo dõi trạng thái khởi tạo

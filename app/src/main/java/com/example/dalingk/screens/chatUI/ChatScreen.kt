@@ -49,6 +49,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -78,7 +79,9 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -91,15 +94,18 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.dalingk.R
+import com.example.dalingk.data.chat.video.VideoMessageHandler
 import com.example.dalingk.navigation.Routes
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DatabaseReference
 import data.chat.AppChatDatabase
+import data.chat.video.VideoPlayer
 import data.chat.viewmodel.ChatListViewModelFactory
 import kotlinx.coroutines.launch
 import data.chat.viewmodel.getUserData
 import data.viewmodel.UserInputViewModel
 import kotlinx.coroutines.delay
+import util.AppState
 import util.ImageUtils
 import java.io.File
 
@@ -132,7 +138,6 @@ class ChatScreen : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun ChatScreen(
     navController: NavController,
@@ -145,9 +150,8 @@ fun ChatScreen(
     val userInputViewModel = UserInputViewModel()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Quyền ghi âm
     val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
             coroutineScope.launch {
@@ -156,7 +160,14 @@ fun ChatScreen(
         }
     }
 
-    // Trạng thái ghi âm
+    LaunchedEffect(Unit) {
+        viewModel.notificationMessage.collect { message ->
+            if (message != null) {
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+    }
+
     var isRecording by remember { mutableStateOf(false) }
     var isRecordingStopped by remember { mutableStateOf(false) }
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
@@ -164,7 +175,18 @@ fun ChatScreen(
     var recordingProgress by remember { mutableStateOf(0f) }
     var showAttachmentMenu by remember { mutableStateOf(false) }
 
-    // Cập nhật tiến trình ghi âm
+    val videoLaunchers = VideoMessageHandler.setupVideoLaunchers(
+        matchId = matchId,
+        currentUserId = currentUserId,
+        userInputViewModel = userInputViewModel,
+        coroutineScope = coroutineScope,
+        snackbarHostState = snackbarHostState,
+        onVideoSent = { videoUrl ->
+            Log.d("ChatScreen", "Video message sent: $videoUrl")
+            viewModel.sendVideoMessage(matchId, currentUserId, videoUrl)
+        }
+    )
+
     LaunchedEffect(isRecording) {
         if (isRecording) {
             recordingProgress = 0f
@@ -181,7 +203,7 @@ fun ChatScreen(
         coroutineScope.launch {
             AppChatDatabase.getDatabase(context).chatDao().markAllMessagesAsNotified(matchId)
             viewModel.loadMessages(matchId)
-            util.AppState.setCurrentChatScreen(matchId)
+            AppState.setCurrentChatScreen(matchId)
         }
     }
 
@@ -206,24 +228,26 @@ fun ChatScreen(
     }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: android.net.Uri? ->
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
         uri?.let {
             coroutineScope.launch {
                 try {
                     val compressedFile = ImageUtils.compressImageToFile(context, it, maxSizeKB = 150)
                     userInputViewModel.uploadFileToCloudinary(
                         filePath = compressedFile.absolutePath,
-                        isAudio = false,
+                        fileType = UserInputViewModel.FileType.IMAGE,
                         onSuccess = { imageUrl ->
                             Log.d("ChatScreen", "Image URL uploaded: $imageUrl")
                             viewModel.sendImageMessage(matchId, currentUserId, imageUrl)
+                            compressedFile.delete()
                         },
                         onError = { error ->
                             Log.e("ChatScreen", "Error uploading image: $error")
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("Lỗi tải ảnh: $error")
                             }
+                            compressedFile.delete()
                         }
                     )
                 } catch (e: Exception) {
@@ -258,16 +282,10 @@ fun ChatScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = {
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    Routes.DetailU,
-                                    2
-                                )
+                                navController.currentBackStackEntry?.savedStateHandle?.set(Routes.DetailU, 2)
                                 navController.navigate(Routes.MainMatch)
                             }) {
-                                Icon(
-                                    imageVector = Icons.Filled.ArrowBack,
-                                    contentDescription = "Back"
-                                )
+                                Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Quay lại")
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Image(
@@ -299,39 +317,58 @@ fun ChatScreen(
                 }
 
                 Box(modifier = Modifier.weight(1f)) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 8.dp),
-                        state = lazyListState,
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        reverseLayout = false
-                    ) {
-                        itemsIndexed(messages) { index, message ->
-                            val previousMessage = messages.getOrNull(index - 1)
-                            val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
-                            val shouldShowDate = previousMessage == null || !isSameDay(
-                                message.timestamp,
-                                previousMessage.timestamp
+                    // Thanh loading nằm trên khung chat
+                    val isLoading = remember { mutableStateOf(false) }
+                    LaunchedEffect(messages) {
+                        isLoading.value = messages.any { !it.isSynced && (it.messageType == "video" || it.messageType == "image" || it.messageType == "audio") }
+                    }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (isLoading.value) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .align(Alignment.TopCenter),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = Color.Gray.copy(alpha = 0.3f)
                             )
-                            if (shouldShowDate) {
-                                Text(
-                                    text = formatFriendlyDate(message.timestamp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    textAlign = TextAlign.Center,
-                                    color = Color.Gray.copy(alpha = 0.7f),
-                                    fontSize = 12.sp
+                        }
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 8.dp),
+                            state = lazyListState,
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            reverseLayout = false
+                        ) {
+                            itemsIndexed(messages) { index, message ->
+                                val previousMessage = messages.getOrNull(index - 1)
+                                val isSameSenderAsPrevious = previousMessage?.senderId == message.senderId
+                                val shouldShowDate = previousMessage == null || !isSameDay(
+                                    message.timestamp,
+                                    previousMessage.timestamp
                                 )
+                                if (shouldShowDate) {
+                                    Text(
+                                        text = formatFriendlyDate(message.timestamp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray.copy(alpha = 0.7f),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                ChatItem(
+                                    message = message,
+                                    currentUserId = currentUserId,
+                                    userData = userData,
+                                    showAvatar = !isSameSenderAsPrevious && message.senderId != currentUserId,
+                                    userInputViewModel = userInputViewModel
+                                )
+                                Spacer(modifier = Modifier.height(if (isSameSenderAsPrevious) 2.dp else 8.dp))
                             }
-                            ChatItem(
-                                message = message,
-                                currentUserId = currentUserId,
-                                userData = userData,
-                                showAvatar = !isSameSenderAsPrevious && message.senderId != currentUserId
-                            )
-                            Spacer(modifier = Modifier.height(if (isSameSenderAsPrevious) 2.dp else 8.dp))
                         }
                     }
                 }
@@ -359,7 +396,6 @@ fun ChatScreen(
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Nút mở menu đính kèm
                         Box {
                             IconButton(
                                 onClick = { showAttachmentMenu = true },
@@ -384,28 +420,16 @@ fun ChatScreen(
                                         showAttachmentMenu = false
                                     },
                                     leadingIcon = {
-                                        Icon(
-                                            Icons.Outlined.AttachFile,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
+                                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Ghi âm") },
                                     onClick = {
-                                        if (ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.RECORD_AUDIO
-                                            ) == PackageManager.PERMISSION_GRANTED
-                                        ) {
+                                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                             try {
-                                                // Tạo file tạm thời cho âm thanh
-                                                val fileName =
-                                                    "${context.cacheDir}/audio_${System.currentTimeMillis()}.m4a"
+                                                val fileName = "${context.cacheDir}/audio_${System.currentTimeMillis()}.m4a"
                                                 audioFile = File(fileName)
-
-                                                // Khởi tạo MediaRecorder
                                                 mediaRecorder = MediaRecorder().apply {
                                                     setAudioSource(MediaRecorder.AudioSource.MIC)
                                                     setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
@@ -426,22 +450,50 @@ fun ChatScreen(
                                                 isRecording = false
                                             }
                                         } else {
-                                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                                         }
                                         showAttachmentMenu = false
                                     },
                                     leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Mic,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
+                                        Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Quay video") },
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            Log.d("ChatScreen", "Launching video capture")
+                                            VideoMessageHandler.launchCaptureVideo(
+                                                context = context,
+                                                cameraPermissionLauncher = videoLaunchers.cameraPermissionLauncher,
+                                                captureVideoLauncher = videoLaunchers.captureVideoLauncher,
+                                                setVideoUri = videoLaunchers.setVideoUri
+                                            )
+                                        }
+                                        showAttachmentMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Chọn video") },
+                                    onClick = {
+                                        Log.d("ChatScreen", "Launching video picker")
+                                        VideoMessageHandler.launchPickVideo(
+                                            context = context,
+                                            storagePermissionLauncher = videoLaunchers.storagePermissionLauncher,
+                                            pickVideoLauncher = videoLaunchers.pickVideoLauncher
                                         )
+                                        showAttachmentMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.VideoLibrary, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     }
                                 )
                             }
                         }
 
-                        // Ô nhập tin nhắn hoặc giao diện ghi âm
                         if (isRecording || isRecordingStopped) {
                             Row(
                                 modifier = Modifier
@@ -451,15 +503,6 @@ fun ChatScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                LinearProgressIndicator(
-                                    progress = recordingProgress,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(4.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = Color.Gray.copy(alpha = 0.3f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 if (isRecording) {
                                     IconButton(
                                         onClick = {
@@ -498,7 +541,7 @@ fun ChatScreen(
                                                     coroutineScope.launch {
                                                         userInputViewModel.uploadFileToCloudinary(
                                                             filePath = file.absolutePath,
-                                                            isAudio = true,
+                                                            fileType = UserInputViewModel.FileType.AUDIO,
                                                             onSuccess = { audioUrl ->
                                                                 Log.d("ChatScreen", "Audio URL uploaded: $audioUrl")
                                                                 viewModel.sendAudioMessage(matchId, currentUserId, audioUrl)
@@ -633,7 +676,9 @@ fun ChatScreen(
             mediaRecorder = null
             audioFile?.delete()
             audioFile = null
-            util.AppState.setCurrentChatScreen(null)
+            VideoMessageHandler.cleanup(context, videoLaunchers.videoUri())
+            AppState.setCurrentChatScreen(null)
+            Log.d("ChatScreen", "Cleaned up resources for matchId: $matchId")
         }
     }
 }
@@ -643,22 +688,39 @@ fun ChatItem(
     message: CachedMessage,
     currentUserId: String,
     userData: UserData?,
-    showAvatar: Boolean
+    showAvatar: Boolean,
+    userInputViewModel: UserInputViewModel
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
     var showFullImage by remember { mutableStateOf(false) }
+    var showFullVideo by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var playbackProgress by remember { mutableStateOf(0f) }
     var currentPosition by remember { mutableStateOf(0) }
     var duration by remember { mutableStateOf(0) }
+    var uploadProgress by remember { mutableStateOf(0f) }
+    var isUploading by remember { mutableStateOf(false) }
 
     LaunchedEffect(message) {
         Log.d(
             "ChatItemDebug",
             "Message ID: ${message.messageId}, Type: ${message.messageType}, Text/URL: ${message.text}"
         )
+        if (!message.isSynced && (message.messageType == "video" || message.messageType == "image" || message.messageType == "audio")) {
+            isUploading = true
+            uploadProgress = 0f
+            while (isUploading && uploadProgress < 1f) {
+                uploadProgress = minOf(uploadProgress + 0.02f, 1f)
+                delay(100)
+            }
+            if (message.isSynced) {
+                isUploading = false
+                uploadProgress = 0f
+            }
+        }
     }
+
 
     LaunchedEffect(isPlaying) {
         if (isPlaying && mediaPlayer != null) {
@@ -754,6 +816,28 @@ fun ChatItem(
                         .widthIn(max = 300.dp)
                 ) {
                     when (message.messageType) {
+                        "video" -> {
+                            if (message.text.isNotEmpty() && message.text.startsWith("http")) {
+                                Box(
+                                    modifier = Modifier
+                                        .clickable { showFullVideo = true }
+                                ) {
+                                    VideoPlayer(
+                                        videoUrl = message.text,
+                                        isSentByCurrentUser = isSentByCurrentUser,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Lỗi: URL video không hợp lệ",
+                                    color = Color.Red,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                         "image" -> {
                             if (message.text.isNotEmpty() && message.text.startsWith("http")) {
                                 Box(
@@ -780,7 +864,6 @@ fun ChatItem(
                                 )
                             }
                         }
-
                         "audio" -> {
                             if (message.text.isNotEmpty() && message.text.startsWith("http")) {
                                 Column(
@@ -867,7 +950,6 @@ fun ChatItem(
                                 )
                             }
                         }
-
                         else -> {
                             Column(
                                 modifier = Modifier
@@ -892,40 +974,79 @@ fun ChatItem(
                     }
                     Text(
                         text = formatMessageTime(message.timestamp),
-//                        color = if (isSentByCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray.copy(alpha = 0.7f),
+                        color = if (isSentByCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray.copy(alpha = 0.7f),
                         fontSize = 11.sp,
+                        modifier = Modifier.align(Alignment.End)
                     )
+
+                    if (!message.isSynced && message.messageType in listOf("video", "image", "audio")) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        LinearProgressIndicator(
+                            progress = playbackProgress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp),
+                            color = if (isSentByCurrentUser) Color.White else MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Gray.copy(alpha = 0.3f)
+                        )
+                    }
+
                 }
                 if (isSentByCurrentUser) {
                     Spacer(modifier = Modifier.width(8.dp))
                 }
             }
-        }
-    }
-    if (showFullImage) {
-        Dialog(
-            onDismissRequest = { showFullImage = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0x3EC5C5C5))
-                    .clickable { showFullImage = false },
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = message.text,
-                    contentDescription = "Hình ảnh toàn màn hình",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clickable { showFullImage = false },
-                    contentScale = ContentScale.Fit
-                )
+
+            if (showFullImage) {
+                Dialog(
+                    onDismissRequest = { showFullImage = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0x3EC5C5C5))
+                            .clickable { showFullImage = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = message.text,
+                            contentDescription = "Hình ảnh toàn màn hình",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clickable { showFullImage = false },
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+            }
+
+            if (showFullVideo) {
+                Dialog(
+                    onDismissRequest = { showFullVideo = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black)
+                            .clickable { showFullVideo = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        VideoPlayer(
+                            videoUrl = message.text,
+                            isSentByCurrentUser = isSentByCurrentUser,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                        )
+                    }
+                }
             }
         }
     }
+
     DisposableEffect(Unit) {
         onDispose {
             mediaPlayer?.release()
@@ -943,16 +1064,6 @@ fun formatTime(millis: Int): String {
     val minutes = seconds / 60
     val remainingSeconds = seconds % 60
     return String.format("%d:%02d", minutes, remainingSeconds)
-}
-
-
-// Hàm hỗ trợ
-suspend fun getOtherUserId(matchId: String, currentUserId: String, context: Context): String? {
-    val database = FirebaseDatabase.getInstance()
-    val snapshot = database.getReference("matches/$matchId").get().await()
-    val user1Id = snapshot.child("user1Id").value as? String
-    val user2Id = snapshot.child("user2Id").value as? String
-    return if (user1Id == currentUserId) user2Id else user1Id
 }
 
 fun formatFriendlyDate(timestamp: Long): String {

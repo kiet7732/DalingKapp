@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface ChatDao {
@@ -17,11 +18,17 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: CachedMessage)
 
+    @Update
+    suspend fun updateMessage(message: CachedMessage)
+
     @Query("SELECT * FROM messages WHERE matchId = :matchId AND ownerId = :ownerId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestMessage(matchId: String, ownerId: String): CachedMessage?
 
     @Query("SELECT * FROM messages WHERE matchId = :matchId AND ownerId = :ownerId ORDER BY timestamp ASC")
     fun getMessagesByMatchId(matchId: String, ownerId: String): LiveData<List<CachedMessage>>
+
+    @Query("SELECT * FROM messages WHERE matchId = :matchId ORDER BY timestamp ASC")
+    suspend fun getMessagesByMatchIdVi(matchId: String): List<CachedMessage>
 
     @Query("UPDATE messages SET isSynced = 1 WHERE messageId = :messageId")
     suspend fun markMessageAsSynced(messageId: String)
@@ -46,4 +53,13 @@ interface ChatDao {
 
     @Query("DELETE FROM messages")
     suspend fun clearMessages()
+
+    @Query("SELECT * FROM messages WHERE matchId = :matchId ORDER BY timestamp ASC")
+    suspend fun getMessagesForChat(matchId: String): List<CachedMessage>
+
+    @Query("SELECT * FROM messages WHERE messageType = 'video'")
+    suspend fun getAllVideoMessages(): List<CachedMessage>
+
+    @Query("UPDATE messages SET duration = :duration WHERE messageId = :messageId")
+    suspend fun updateMessageDuration(messageId: String, duration: Long)
 }

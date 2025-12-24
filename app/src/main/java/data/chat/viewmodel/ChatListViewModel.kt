@@ -2,6 +2,7 @@ package data.chat.viewmodel
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaMetadataRetriever
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
@@ -20,6 +21,7 @@ import data.chat.AppChatDatabase
 import data.chat.CachedChatListItem
 import data.chat.CachedMessage
 import data.chat.services.MessageSyncService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +29,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
-
+import kotlinx.coroutines.withContext
+import java.util.UUID
 
 
 class ChatListViewModel(
@@ -391,6 +394,78 @@ class ChatListViewModel(
                 }
                 val intent = Intent(context, MessageSyncService::class.java)
                 context.startService(intent)
+            }
+        }
+    }
+
+    fun sendVideoMessage(matchId: String, senderId: String, videoUrl: String) {
+        val messageId = database.getReference("matches/$matchId/chat").push().key ?: return
+        currentUserId?.let { ownerId ->
+            viewModelScope.launch {
+                try {
+                    val timestamp = System.currentTimeMillis()
+
+                    // Get video duration
+                    val duration = try {
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(videoUrl)
+                        val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        retriever.release()
+                        durationStr?.toLongOrNull()
+                    } catch (e: Exception) {
+                        Log.e("ChatListViewModel", "Error getting video duration: ${e.message}")
+                        null
+                    }
+
+                    val message = CachedMessage(
+                        messageId = messageId,
+                        matchId = matchId,
+                        senderId = senderId,
+                        text = videoUrl,
+                        timestamp = timestamp,
+                        isSynced = false,
+                        ownerId = ownerId,
+                        isNotified = false,
+                        messageType = "video",
+                        duration = duration
+                    )
+
+                    chatDao.insertMessage(message)
+                    updateChatListItem(matchId, "Đã gửi một video", message.timestamp)
+                    if (isNetworkAvailable) {
+                        syncMessageToFirebaseWithRetry(message)
+                    }
+                    val intent = Intent(context, MessageSyncService::class.java)
+                    context.startService(intent)
+                    _messages.value = chatDao.getMessagesForChat(matchId)
+                    Log.d("ChatListViewModel", "Video message sent: $videoUrl, duration: $duration")
+                } catch (e: Exception) {
+                    Log.e("ChatListViewModel", "Error sending video message: ${e.message}")
+                    _notificationMessage.emit("Lỗi gửi video: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun updateVideoDurations() {
+        viewModelScope.launch {
+            val messages = chatDao.getAllVideoMessages()
+            messages.forEach { message ->
+                if (message.duration == null && message.messageType == "video") {
+                    val duration = try {
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(message.text)
+                        val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        retriever.release()
+                        durationStr?.toLongOrNull()
+                    } catch (e: Exception) {
+                        Log.e("ChatListViewModel", "Error updating duration for message ${message.messageId}: ${e.message}")
+                        null
+                    }
+                    if (duration != null) {
+                        chatDao.updateMessageDuration(message.messageId, duration)
+                    }
+                }
             }
         }
     }
